@@ -1,5 +1,6 @@
 ﻿using Furnace.Fabric.Data.FabricLoaderMeta;
 using Furnace.Log;
+using Furnace.Minecraft;
 using Furnace.Minecraft.Data;
 using Furnace.Tasks;
 using Furnace.Utility.Extension;
@@ -24,9 +25,9 @@ public class FabricInstallTask : Runnable
     }
 
     public static FabricInstallTask SpecificVersion(string gameVersion, string fabricVersion, Minecraft.Data.GameInstallType installType, DirectoryInfo rootDir) =>
-        new FabricInstallTask(gameVersion, fabricVersion, installType, rootDir);
+        new(gameVersion, fabricVersion, installType, rootDir);
 
-    private static string LibraryNameToPath(string name)
+    public static string LibraryNameToPath(string name)
     {
         var split = name.Split(":");
         var packageName = split[0];
@@ -35,7 +36,7 @@ public class FabricInstallTask : Runnable
         return $"{packageName.Replace(".", "/")}/{jarName}/{versionName}/{jarName}-{versionName}.jar";
     }
 
-    private async Task<Task> InstallLibrariesAsync(Data.FabricLoaderMeta.Library[] libraries, DirectoryInfo libraryDir, CancellationToken ct)
+    private static async Task<Task> InstallLibrariesAsync(IEnumerable<Library> libraries, DirectoryInfo libraryDir, CancellationToken ct)
     {
         var sharedQueue = new SharedResourceQueue<HttpClient>(1, _ => new HttpClient());
         foreach (var lib in libraries)
@@ -101,7 +102,10 @@ public class FabricInstallTask : Runnable
                              $"loader/{fabricMeta.Loader.Version}/fabric-meta-{fabricMeta.Loader.Version}.json")
                          .OpenWrite())
         {
-            await new StreamWriter(fs).WriteAsync(fabricMeta.ToJson());
+            await using (var writer = new StreamWriter(fs))
+            {
+                await writer.WriteAsync(fabricMeta.ToJson());
+            }
         }
 
         await commonLibraryTask;

@@ -1,24 +1,35 @@
 ﻿using Furnace.Auth.Microsoft;
 using Furnace.Log;
+using Furnace.Utility.Extension;
 
 namespace Furnace.Auth;
 
 public class UserProfileManager
 {
-    private static readonly Logger _logger;
+    private static readonly Logger Logger;
+    private readonly DirectoryInfo _rootDir;
     public List<UserProfile> Profiles { get; }
 
     public UserProfile? SelectedProfile => Profiles.FirstOrDefault(x => x.IsSelected);
 
     private static UserProfileManager? _instance;
 
-    private UserProfileManager(IEnumerable<UserProfile> profiles)
+    public bool DeleteProfile(UserProfile profile)
+    {
+        var userDir = _rootDir.CreateSubdirectory("users");
+        var file = userDir.GetFileInfo($"{profile.Uuid}.json");
+        file.Delete();
+        return Profiles.Remove(profile);
+    }
+
+    private UserProfileManager(IEnumerable<UserProfile> profiles, DirectoryInfo rootDirectory)
     {
         Profiles = new List<UserProfile>(profiles);
         _instance = this;
+        _rootDir = rootDirectory;
     }
     
-    static UserProfileManager() { _logger = LogManager.GetLogger(); }
+    static UserProfileManager() { Logger = LogManager.GetLogger(); }
 
     public static async Task<UserProfileManager> LoadProfilesAsync(DirectoryInfo rootDirectory)
     {
@@ -26,8 +37,8 @@ public class UserProfileManager
             return _instance;
         
         var profiles = new List<UserProfile>();
-        var userDir = rootDirectory.CreateSubdirectory("Users");
-        foreach (var file in userDir.EnumerateFiles())
+        var userDir = rootDirectory.CreateSubdirectory("users");
+        foreach (var file in userDir.EnumerateFiles().Where(x => x.Extension == ".json"))
         {
             try
             {
@@ -37,20 +48,39 @@ public class UserProfileManager
             }
             catch (Exception ex)
             {
-                _logger.W($"Unable to read file: {file.Name}");
-                _logger.D(ex.StackTrace ?? "No stack trace");
+                Logger.W($"Unable to read file: {file.Name}");
+                Logger.D(ex.StackTrace ?? "No stack trace");
             }
         }
         
-        _instance = new UserProfileManager(profiles);
+        _instance = new UserProfileManager(profiles, rootDirectory);
         return _instance;
     }
 
-    public async Task<UserProfile> SignInWithMicrosoftAsync()
+    public void ChangeSelectedProfile(UserProfile newSelectedProfile)
+    {
+        Profiles.ForEach(x => { x.IsSelected = false; });
+        newSelectedProfile.IsSelected = true;
+    }
+
+    public async Task WriteProfilesAsync()
+    {
+        var userDir = _rootDir.CreateSubdirectory("users");
+        foreach (var profile in Profiles)
+        {
+            var file = userDir.GetFileInfo($"{profile.Uuid}.json");
+            file.Delete();
+            await using var fs = file.OpenWrite();
+            await using var writer = new StreamWriter(fs);
+            await writer.WriteAsync(profile.ToJson());
+        }
+    }
+
+    public async Task<UserProfile> SignInWithMicrosoftAsync(bool setAsDefault = false)
     {
         var profile = await new MicrosoftAuth().AuthenticateAsync();
-        profile.IsSelected = true;
-        Profiles.ForEach(x => { x.IsSelected = false; });
+        if (setAsDefault)
+            ChangeSelectedProfile(profile);
         Profiles.Add(profile);
         return profile;
     }

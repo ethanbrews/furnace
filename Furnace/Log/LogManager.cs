@@ -8,5 +8,5 @@ public static class LogManager
     private static Type _loggerType = typeof(ConsoleLogger);
     public static LoggingLevel Level { get; set; } = LoggingLevel.Info;
     public static void SetLogHandler<T>() where T : Logger => _loggerType = typeof(T);
-    public static Logger GetLogger([CallerMemberName] string callerName = "") => (Logger)Activator.CreateInstance(_loggerType, Level, callerName)!;
+    public static Logger GetLogger([CallerFilePath] string callerName = "") => (Logger)Activator.CreateInstance(_loggerType, Level, callerName)!;
 }

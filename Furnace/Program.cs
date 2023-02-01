@@ -1,90 +1,82 @@
-﻿using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using Furnace.Auth.Microsoft;
-using Furnace.Fabric;
+﻿using System;
+using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
+using System.IO;
+using Furnace.Command;
 using Furnace.Log;
-using Furnace.Minecraft;
-using Furnace.Minecraft.Data;
-using Furnace.Modrinth;
-using Furnace.Tasks;
-using Furnace.Utility;
-using Furnace.Utility.Extension;
 
-LogManager.Level = LoggingLevel.Trace;
-var logger = LogManager.GetLogger();
-var cts = new CancellationTokenSource();
-
-logger.I("Starting...");
-var rootDirectory = new DirectoryInfo("data");
-var packInstallTask = PackInstallTask.InstallLatest(rootDirectory, "1KVo5zza");
-var fabricTask = FabricInstallTask.SpecificVersion("1.19.3", "0.14.13", GameInstallType.Client, rootDirectory);
-var minecraftInstallTask = MinecraftInstallTask.InstallLatest(rootDirectory, GameInstallType.Client);
-
-// LAUNCH (PackId)
-const string packId = "1KVo5zza";
-
-
-var auth = await new MicrosoftAuth().AuthenticateAsync();
-Console.WriteLine("Authenticated!");
-
-var builder = new MinecraftCommandBuilder(minecraftManifest, auth)
+public static class Program
 {
-    NativesDirectory = FileUtil.CreateUniqueTempDirectory(),
-    RootDirectory = rootDirectory,
-    GameDirectory = rootDirectory.CreateSubdirectory("Instances/Example")
-};
-logger.D($"Natives directory is {builder.NativesDirectory.FullName}");
-var nativesIntermediaryDirectory = FileUtil.CreateUniqueTempDirectory();
-var librariesDir = rootDirectory.CreateSubdirectory("minecraft/libraries");
-foreach(var library in minecraftManifest.Libraries) {
-    if (library.SystemMeetsRules && library.Name.ToLower().Contains("native"))
+    internal static readonly DirectoryInfo RootDirectory = new("data");
+
+    private static async Task<int> RunCommandAsync(string[] args)
     {
-        var libraryFile = librariesDir.GetFileInfo(library.Downloads.Artifact.Path);
-        System.IO.Compression.ZipFile.ExtractToDirectory(libraryFile.FullName, nativesIntermediaryDirectory.FullName, null, true);
+        var forceOption = new Option<bool>("force", () => false, "Perform destructive operation without confirmation.");
+        var selectNewUserOption = new Option<bool>("select", () => true, "Select the newly added user account as the default");
+        var userUuidArgument = new Argument<string?>("uuid", () => null, "The user to target the operation towards.");
+
+        var verboseOption = new Option<bool>("verbose", () => false, "Show verbose output");
+        var throwErrorsOption = new Option<bool>("debug-throw-errors", () => false, "Throw errors, used to debug the furnace application")
+        {
+            IsHidden = true
+        };
+        
+        var rootCommand = new RootCommand(description: "Install and launch modrinth packs with fabric support.");
+        rootCommand.AddGlobalOption(verboseOption);
+        rootCommand.AddGlobalOption(throwErrorsOption);
+        
+        var usersCommand = new Command("users", "add, delete and select user accounts.");
+        var usersAddCommand = new Command("add", "Add a new user.");
+        usersAddCommand.AddOption(selectNewUserOption);
+        usersAddCommand.SetHandler(async select => await UserCommand.AddUserAsync(select), selectNewUserOption);
+        var usersDeleteCommand = new Command("delete", "Delete the specified user.");
+        usersDeleteCommand.AddOption(forceOption);
+        usersDeleteCommand.AddArgument(userUuidArgument);
+        usersDeleteCommand.SetHandler(async (uuid, force) => await UserCommand.DeleteUserAsync(uuid, force), userUuidArgument, forceOption);
+        var userSelectCommand = new Command("select", "Select a new user as default.");
+        userSelectCommand.AddArgument(userUuidArgument);
+        userSelectCommand.SetHandler(async uuid => await UserCommand.SetUserSelectedAsync(uuid), userUuidArgument);
+        var userListCommand = new Command("list", "List all user accounts that are logged in.");
+        userListCommand.SetHandler(async verbose => await UserCommand.ListUsersAsync(verbose), verboseOption);
+
+        usersCommand.AddCommand(usersAddCommand);
+        usersCommand.AddCommand(userSelectCommand);
+        usersCommand.AddCommand(usersDeleteCommand);
+        usersCommand.AddCommand(userListCommand);
+        rootCommand.AddCommand(usersCommand);
+        
+        var parser = new CommandLineBuilder(rootCommand)
+            .UseVersionOption()
+            .UseHelp()
+            .UseEnvironmentVariableDirective()
+            .UseParseDirective()
+            .UseSuggestDirective()
+            .RegisterWithDotnetSuggest()
+            .UseTypoCorrections()
+            .UseParseErrorReporting()
+            .CancelOnProcessTermination()
+            .Build();
+        
+        return await parser.InvokeAsync(args);
+        
+    }
+    
+    public static async Task<int> Main(params string[] args)
+    {
+        LogManager.Level = LoggingLevel.NeverLog;
+        var logger = LogManager.GetLogger();
+        var cts = new CancellationTokenSource();
+        
+        try
+        {
+            return await RunCommandAsync(args);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+
+        return 1;
     }
 }
-
-var possibleArchitectures = new[] { "x86", "x64" };
-
-var thisArchitecture = RuntimeInformation.ProcessArchitecture switch 
-{
-    Architecture.X64 => "x64",
-    Architecture.X86 => "x86",
-    _ => "x64"
-};
-
-foreach (var lib in Directory.GetFiles(nativesIntermediaryDirectory.FullName, "*.*", SearchOption.AllDirectories)
-             .Where(file => file.ToLower().EndsWith("dll") && (!possibleArchitectures.Any(arch => file.ToLower().Contains(arch)) || file.ToLower().Contains(thisArchitecture))))
-{
-    var libName = Path.GetFileName(lib);
-    new FileInfo(lib).CopyTo(builder.NativesDirectory.GetFileInfo(libName).FullName);
-}
-
-foreach (var lib in minecraftManifest.Libraries)
-{
-    if (lib.SystemMeetsRules)
-    {
-        builder.ClassPathList.Add(rootDirectory.GetFileInfo(Path.Join("minecraft/libraries/", lib.Downloads.Artifact.Path)));
-    }
-}
-
-builder.ClassPathList.Add(rootDirectory.GetFileInfo(Path.Join("minecraft/versions", minecraftVersion, "client.jar")));
-
-var built = builder.Build();
-logger.I(built);
-
-var startBat = rootDirectory.GetFileInfo("start.bat");
-await using var fs = startBat.OpenWrite();
-await using var writer = new StreamWriter(fs);
-await writer.WriteAsync(built);
-
-
-
-// // Load libraries, assetVersion, other stuff?
-// // Load minecraft/fabric/loader/fbV/fabric-meta-fbV.json
-/*var fabricManifest = await JsonFileReader.Read<Furnace.Fabric.Data.FabricLoaderMeta.FabricLoaderMeta>(
-    rootDirectory.GetFileInfo($"minecraft/fabric/loader/{fabricVersion}/fabric-meta-{fabricVersion}.json") 
-).RunAsync(cts.Token);*/
-
-// // Discover: List of libraries, intermediary, loader, mainClass

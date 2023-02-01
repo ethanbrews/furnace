@@ -49,7 +49,10 @@ public class AssetInstallTask : Runnable
         
         await using (var stream = assetsIndexDir.GetFileInfo($"{_gameManifest.Id}.json").OpenWrite())
         {
-            await new StreamWriter(stream).WriteAsync(assetIndex.ToJson());
+            await using (var streamWriter = new StreamWriter(stream))
+            {
+                await streamWriter.WriteAsync(assetIndex.ToJson());
+            }
         }
 
         log.I($"Scheduled {scheduledTaskQueue.ItemsInQueue} assets for install");
