@@ -1,7 +1,7 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
-using Furnace.Command;
+using Furnace.Cli.Command;
 
 var forceOption = new Option<bool>("force", () => false, "Perform destructive operation without confirmation.");
 var selectNewUserOption = new Option<bool>("select", () => true, "Select the newly added user account as the default");
@@ -52,7 +52,10 @@ var parser = new CommandLineBuilder(rootCommand)
 return await parser.InvokeAsync(args);
 
 
-public partial class Program
+namespace Furnace.Cli
 {
-    internal static readonly DirectoryInfo RootDirectory = new("data");
+    public partial class Program
+    {
+        internal static readonly DirectoryInfo RootDirectory = new("data");
+    }
 }
