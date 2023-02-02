@@ -1,8 +1,6 @@
-﻿namespace Furnace.ConsoleTool;
+﻿using System.Text;
 
-using System;
-using System.Text;
-using System.Threading;
+namespace Furnace.Cli.ConsoleTool;
 
 /// <summary>
 /// An ASCII progress bar

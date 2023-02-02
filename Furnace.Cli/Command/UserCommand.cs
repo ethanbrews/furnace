@@ -1,7 +1,7 @@
 ﻿using Furnace.Auth;
 using Sharprompt;
 
-namespace Furnace.Command;
+namespace Furnace.Cli.Command;
 
 public static class UserCommand
 {
