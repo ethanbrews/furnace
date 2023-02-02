@@ -28,7 +28,7 @@ public class MicrosoftAuth
         _httpClient = new HttpClient();
         _logger = LogManager.GetLogger();
     }
-    
+
     private static PublicClientApplicationOptions GetOptions() => new PublicClientApplicationOptions
     {
         ClientId = "1179be7f-9713-4440-b90f-c31396be5210",
@@ -63,7 +63,7 @@ public class MicrosoftAuth
         var app = PublicClientApplicationBuilder.CreateWithApplicationOptions(options)
             .Build();
 
-        var token = await app.AcquireTokenInteractive(new[]{"XboxLive.signin", "XboxLive.offline_access"}).ExecuteAsync();
+        var token = await app.AcquireTokenInteractive(new[] { "XboxLive.signin", "XboxLive.offline_access" }).ExecuteAsync();
         return token;
     }
 
@@ -129,7 +129,7 @@ public class MicrosoftAuth
                 response.EnsureSuccessStatusCode();
             }
         }
-        
+
         using var sr = new StreamReader(await response.Content.ReadAsStreamAsync());
         return XSTSAuthenticationResponse.FromJson(await sr.ReadToEndAsync());
     }
@@ -142,14 +142,27 @@ public class MicrosoftAuth
         });
 
         response.EnsureSuccessStatusCode();
-        
+
         using var sr = new StreamReader(await response.Content.ReadAsStreamAsync());
         return MinecraftXboxAuthenticationResponse.FromJson(await sr.ReadToEndAsync());
     }
 
     private async Task<bool> DoesUserOwnGameAsync(MinecraftXboxAuthenticationResponse mcAuth)
     {
-        //TODO: Check against MinecraftEntitlementsUri;
+        var requestMessage = new HttpRequestMessage(HttpMethod.Get, MinecraftEntitlementsUri);
+        requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", mcAuth.AccessToken);
+        var response = await _httpClient.SendAsync(requestMessage);
+        var contentJson = await response.Content.ReadFromJsonAsync<Dictionary<string, JsonElement>>();
+        if (contentJson is null)
+        {
+            return false;
+        }
+        JsonElement items;
+        contentJson.TryGetValue("items", out items);
+        if (items.GetArrayLength() == 0)
+        {
+            return false;
+        }
         return true;
     }
 
@@ -159,11 +172,11 @@ public class MicrosoftAuth
         using var requestMessage = new HttpRequestMessage(HttpMethod.Get, MinecraftProfileUri);
         requestMessage.Headers.Authorization =
             new AuthenticationHeaderValue("Bearer", mcAuth.AccessToken);
-    
+
         var response = await _httpClient.SendAsync(requestMessage);
         using var sr = new StreamReader(await response.Content.ReadAsStreamAsync());
         var responseString = await sr.ReadToEndAsync();
-        
+
         if (!response.IsSuccessStatusCode)
             _logger.E(responseString);
         response.EnsureSuccessStatusCode();
