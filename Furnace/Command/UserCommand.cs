@@ -8,12 +8,24 @@ public static class UserCommand
     public static async Task AddUserAsync(bool setAsDefault)
     {
         Console.WriteLine("Please sign in using the browser.");
-        var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
-        var profile = await profileManager.SignInWithMicrosoftAsync(setAsDefault);
-        await profileManager.WriteProfilesAsync();
-        Console.WriteLine($"Signed in as {profile.Username}!");
+        try
+        {
+            var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
+            var profile = await profileManager.SignInWithMicrosoftAsync(setAsDefault);
+            await profileManager.WriteProfilesAsync();
+            if (profile.IsDemoUser)
+            {
+                Console.WriteLine("This profile is in Demo mode with limited playtime and other restrictions. Purchase the full game on minecraft.net!");
+            }
+            Console.WriteLine($"Signed in as {profile.Username}!");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Error: Something went wrong! Please check your Internet connection, or register your account on Xbox Live first.\nDetails: {e.Message}");
+        }
+
     }
-    
+
     public static async Task SetUserSelectedAsync(string? uuid)
     {
         var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
@@ -32,7 +44,7 @@ public static class UserCommand
         await profileManager.WriteProfilesAsync();
         Console.WriteLine($"Selected {profileManager.SelectedProfile?.Username} as the default profile!");
     }
-    
+
     public static async Task DeleteUserAsync(string? uuid, bool force)
     {
         var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
