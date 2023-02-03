@@ -11,6 +11,8 @@ public class SharedResourceQueue<T> : Runnable
     private readonly SemaphoreSlim _sharedResourceLock;
     private readonly SemaphoreSlim _sharedResourceSignal;
 
+    public event EventHandler<int>? OnTaskCompleted; 
+
     public SharedResourceQueue(int number, Func<int, T> resourceFactory)
     {
         _workQueue = Channel.CreateUnbounded<Func<T, Task>>();
@@ -42,8 +44,9 @@ public class SharedResourceQueue<T> : Runnable
         throw new UnreachableException("This method should not be called until the lock is released");
     }
 
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
+        var tasksCompleted = 0;
         _workQueue.Writer.Complete();
         while (await _workQueue.Reader.WaitToReadAsync(ct))
         {
@@ -58,6 +61,7 @@ public class SharedResourceQueue<T> : Runnable
             {
                 await action.Invoke(_sharedResources[index]);
                 await _sharedResourceLock.WaitAsync(ct);
+                OnTaskCompleted?.Invoke(this, ++tasksCompleted);
                 _sharedResourcesBusy[index] = false;
                 _sharedResourceLock.Release();
                 _sharedResourceSignal.Release();

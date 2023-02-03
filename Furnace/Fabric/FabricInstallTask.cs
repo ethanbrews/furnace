@@ -53,7 +53,7 @@ public class FabricInstallTask : Runnable
         return sharedQueue.RunAsync(ct);
     }
 
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         var log = LogManager.GetLogger($"Installing Fabric {_gameVersion}/{_fabricVersion}");
         log.I("Installing fabric");

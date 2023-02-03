@@ -17,7 +17,7 @@ public class LibraryInstallTask : Runnable
         _gameDir = gameDir;
     }
     
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         var log = LogManager.GetLogger($"Installer {_gameManifest.Id} (Libraries)");
         log.I("Installing libraries");
@@ -38,6 +38,8 @@ public class LibraryInstallTask : Runnable
         }
 
         log.I($"Scheduling {scheduledTaskQueue.ItemsInQueue} library files for download");
+        var totalTasks = (double)scheduledTaskQueue.ItemsInQueue;
+        scheduledTaskQueue.OnTaskCompleted += (_, n) => progress?.Invoke(this, n/totalTasks);
         await scheduledTaskQueue.RunAsync(ct);
         log.I("Library files are installed");
     }

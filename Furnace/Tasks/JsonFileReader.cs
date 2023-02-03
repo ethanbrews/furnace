@@ -21,7 +21,9 @@ public static class JsonFileReader
             _file = file;
         }
 
-        public override async Task<T> RunAsync(CancellationToken ct)
+        public new async Task<T> RunAsync(CancellationToken ct) => await RunAsync(null, ct);
+
+        public override async Task<T> RunAsync(ReportProgress? progress, CancellationToken ct)
         {
             using var reader = new StreamReader(_file.OpenRead());
             return _converter.Invoke(await reader.ReadToEndAsync(ct));

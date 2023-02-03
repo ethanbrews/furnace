@@ -3,6 +3,7 @@ using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using Furnace.Cli.Command;
 
+
 var forceOption = new Option<bool>("force", () => false, "Perform destructive operation without confirmation.");
 var selectNewUserOption = new Option<bool>("select", () => true, "Select the newly added user account as the default");
 var userUuidArgument = new Argument<string?>("uuid", () => null, "The user to target the operation towards.");
@@ -31,10 +32,17 @@ userSelectCommand.SetHandler(async uuid => await UserCommand.SetUserSelectedAsyn
 var userListCommand = new Command("list", "List all user accounts that are logged in.");
 userListCommand.SetHandler(async verbose => await UserCommand.ListUsersAsync(verbose), verboseOption);
 
+var installCommand = new Command("install", "Install a modrinth pack from its identifier.");
+var modrinthIdArgument = new Argument<string>("id", "Modrinth project ID.");
+installCommand.AddArgument(modrinthIdArgument);
+installCommand.SetHandler(async id => await InstallCommand.InstallAsync(id), modrinthIdArgument);
+
 usersCommand.AddCommand(usersAddCommand);
 usersCommand.AddCommand(userSelectCommand);
 usersCommand.AddCommand(usersDeleteCommand);
 usersCommand.AddCommand(userListCommand);
+
+rootCommand.AddCommand(installCommand);
 rootCommand.AddCommand(usersCommand);
 
 var parser = new CommandLineBuilder(rootCommand)
@@ -51,11 +59,7 @@ var parser = new CommandLineBuilder(rootCommand)
 
 return await parser.InvokeAsync(args);
 
-
-namespace Furnace.Cli
+public static partial class Program
 {
-    public partial class Program
-    {
-        internal static readonly DirectoryInfo RootDirectory = new("data");
-    }
+    internal static readonly DirectoryInfo RootDirectory = new("data");
 }

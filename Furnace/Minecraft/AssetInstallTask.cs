@@ -19,9 +19,10 @@ public class AssetInstallTask : Runnable
         _httpClient = httpClient;
     }
     
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         var log = LogManager.GetLogger($"Installer {_gameManifest.Id} (Assets)");
+        progress?.Invoke(this, 0.0);
         
         log.I($"Installing minecraft {_gameManifest.Id} assets");
         log.D("Getting asset index");
@@ -56,6 +57,8 @@ public class AssetInstallTask : Runnable
         }
 
         log.I($"Scheduled {scheduledTaskQueue.ItemsInQueue} assets for install");
+        var totalTasks = (double)scheduledTaskQueue.ItemsInQueue;
+        scheduledTaskQueue.OnTaskCompleted += (_, n) => progress?.Invoke(this, n/totalTasks);
         await scheduledTaskQueue.RunAsync(ct);
         log.I($"All assets are installed!");
     }

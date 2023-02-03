@@ -42,7 +42,7 @@ public class PackInstallTask : Runnable
 
 
 
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         var logger = LogManager.GetLogger();
         var client = new HttpClient();
@@ -96,6 +96,8 @@ public class PackInstallTask : Runnable
 
         var parallelTasks = new List<Task>();
         logger.I($"Starting download of {sharedResourceQ.ItemsInQueue} items.");
+        var totalTasks = (double)sharedResourceQ.ItemsInQueue;
+        sharedResourceQ.OnTaskCompleted += (_, n) => progress?.Invoke(this, n/totalTasks);
         await sharedResourceQ.RunAsync(ct);
         
         logger.I($"Installing dependency: Minecraft({indexData.Dependencies.Minecraft})");
@@ -103,7 +105,7 @@ public class PackInstallTask : Runnable
             indexData.Dependencies.Minecraft,
             _rootDirectory,
             GameInstallType.Client
-        ).RunAsync(ct));
+        ).RunAsync(progress, ct));
         
         logger.I($"Installing dependency: FabricLoader({indexData.Dependencies.FabricLoader})");
         parallelTasks.Add(FabricInstallTask.SpecificVersion(
@@ -111,7 +113,7 @@ public class PackInstallTask : Runnable
             indexData.Dependencies.FabricLoader,
             GameInstallType.Client,
             _rootDirectory
-        ).RunAsync(ct));
+        ).RunAsync(progress, ct));
         
         
         await Task.WhenAll(parallelTasks);

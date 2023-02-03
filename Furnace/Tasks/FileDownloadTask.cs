@@ -54,7 +54,7 @@ public class FileDownloadTask : Runnable
     }
     
     
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         if (!_overwrite && _targetFile is { Exists: true, Length: > 0 })
         {

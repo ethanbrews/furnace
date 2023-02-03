@@ -68,9 +68,10 @@ public class MinecraftInstallTask : Runnable
         return downloadTasks;
     }
 
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         var log = LogManager.GetLogger();
+        progress?.Invoke(this, 0.0);
         log.I($"Installing minecraft {_versionName}");
         log.D("Getting version information");
         var client = new HttpClient();
@@ -84,6 +85,7 @@ public class MinecraftInstallTask : Runnable
             "snapshot" => allVersions.Latest.Snapshot,
             _ => _versionName
         });
+        progress?.Invoke(this, 0.1);
         
         log.I($"Selected minecraft {targetVersion.Id} for install");
 
@@ -93,7 +95,7 @@ public class MinecraftInstallTask : Runnable
         log.D("Creating local files");
         var dir = _rootDir.CreateSubdirectory("minecraft");
         dir.Create();
-
+        progress?.Invoke(this, 0.3);
         var parallelTasks = new List<Task>();
 
         if (_installType == GameInstallType.Client)
@@ -107,7 +109,8 @@ public class MinecraftInstallTask : Runnable
 
         log.D("Scheduling game JAR and logging config installation");
         parallelTasks.AddRange(await ScheduleGameFilesInstall(client, gameManifest));
-
+        progress?.Invoke(this, 0.5);
         await Task.WhenAll(parallelTasks);
+        progress?.Invoke(this, 1.0);
     }
 }

@@ -130,7 +130,7 @@ public class PackLaunchTask : Runnable
 
     }
     
-    public override async Task RunAsync(CancellationToken ct)
+    public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         var profileManager = await UserProfileManager.LoadProfilesAsync(_rootDir);
         var profile = profileManager.SelectedProfile;

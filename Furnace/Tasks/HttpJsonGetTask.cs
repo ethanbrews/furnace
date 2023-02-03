@@ -89,7 +89,9 @@ public static class HttpJsonGetTask
         }
     }
 
-    public override async Task<T> RunAsync(CancellationToken ct)
+    public new async Task<T> RunAsync(CancellationToken ct) => await RunAsync(null, ct);
+
+    public override async Task<T> RunAsync(ReportProgress? progress, CancellationToken ct)
     {
         Exception? previousException = null;
 
