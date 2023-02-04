@@ -14,8 +14,7 @@ public static class InstallCommand
             Program.RootDirectory,
             id
         );
-
-        var progressTask = progressBar.DisplayProgressAsync();
+        var progressTask = Task.Run(progressBar.DisplayProgressAsync);
         await installTask.RunAsync(progressBar.ReportProgress, CancellationToken.None);
         progressBar.Finish();
         await progressTask;
