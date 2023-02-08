@@ -19,7 +19,7 @@ public class LibraryInstallTask : Runnable
     
     public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
-        var log = LogManager.GetLogger($"Installer {_gameManifest.Id} (Libraries)");
+        var log = new Logger($"MinecraftLibrariesInstaller({_gameManifest.Id})");
         log.I("Installing libraries");
         var libDir = _gameDir.CreateSubdirectory("libraries");
         

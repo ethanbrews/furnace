@@ -44,7 +44,7 @@ public class PackInstallTask : Runnable
 
     public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
-        var logger = LogManager.GetLogger();
+        var logger = new Logger($"ModrinthInstall({_packId})");
         var client = new HttpClient();
         
         logger.D("Getting Pack Data");

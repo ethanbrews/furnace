@@ -18,10 +18,10 @@ public class FileDownloadTask : Runnable
         _client = client;
         _uri = uri;
         _targetFile = targetFile;
-        _logger = LogManager.GetLogger();
         _overwrite = overwrite;
         _maxRetries = maxRetries;
         _timeout = retryTimeout ?? TimeSpan.FromSeconds(5);
+        _logger = new Logger($"FileDownload({targetFile.Name})");
     }
 
     private async Task TryToDownload()

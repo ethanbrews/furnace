@@ -21,7 +21,7 @@ public class PackLaunchTask : Runnable
     {
         _packId = packId;
         _rootDir = rootDirectory;
-        _logger = LogManager.GetLogger();
+        _logger = new Logger($"ModrinthLauncher({_packId})");
         _runType = runType;
     }
 
@@ -31,7 +31,7 @@ public class PackLaunchTask : Runnable
         CancellationToken ct
     )
     {
-        var minecraftManifest = await JsonFileReader.Read<Furnace.Minecraft.Data.GameManifest.GameManifest>(
+        var minecraftManifest = await JsonFileReader.Read<GameManifest>(
             _rootDir.GetFileInfo($"minecraft/versions/{minecraftVersionName}/manifest.json") 
         ).RunAsync(ct);
         

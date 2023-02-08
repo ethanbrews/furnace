@@ -1,5 +1,6 @@
 using Furnace.Log;
 using Furnace.Tasks;
+using Furnace.Tasks.Progress;
 using Spectre.Console;
 
 namespace Furnace.Cli.Command;
@@ -8,7 +9,6 @@ public static class InstallCommand
 {
     public static async Task InstallAsync(string? id)
     {
-        LogManager.Level = LoggingLevel.NeverLog;
         var progressBar = new ThreadedProgressBar();
         var installTask = Modrinth.PackInstallTask.InstallLatest(
             Program.RootDirectory,

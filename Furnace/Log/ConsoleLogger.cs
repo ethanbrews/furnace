@@ -1,13 +1,11 @@
 ﻿namespace Furnace.Log;
 
-public class ConsoleLogger : Logger
+public class ConsoleLogger : LogHandler
 {
-    public ConsoleLogger(LoggingLevel threshold, string threadLabel) : base(threshold, threadLabel)
+    public ConsoleLogger(LoggingLevel threshold, string callerName) : base(threshold, callerName)
     {
     }
 
-    protected override void Log(LoggingLevel _, string formattedText)
-    {
-        Console.WriteLine(formattedText);
-    }
+    public override void Log(LoggingLevel level, string rawString, string caller) =>
+        Console.WriteLine(FormatString(level, rawString, caller));
 }

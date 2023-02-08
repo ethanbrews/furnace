@@ -21,7 +21,7 @@ public class AssetInstallTask : Runnable
     
     public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
-        var log = LogManager.GetLogger($"Installer {_gameManifest.Id} (Assets)");
+        var log = new Logger($"MinecraftAssetInstaller({_gameManifest.Id})");
         progress?.Invoke(this, 0.0);
         
         log.I($"Installing minecraft {_gameManifest.Id} assets");

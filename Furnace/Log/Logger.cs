@@ -1,36 +1,17 @@
 ﻿namespace Furnace.Log;
 
-public abstract class Logger
+public partial class Logger
 {
-    protected Logger(LoggingLevel threshold, string threadLabel)
+    private static List<LogHandler> _logHandlers;
+
+    static Logger()
     {
-        ThreadLabel = threadLabel;
-        Threshold = threshold;
+        _logHandlers = new List<LogHandler>();
     }
 
-    public void T(string message) => LogIfPermitted(LoggingLevel.Trace, message);
-    public void D(string message) => LogIfPermitted(LoggingLevel.Debug, message);
-    public void I(string message) => LogIfPermitted(LoggingLevel.Info, message);
-    public void W(string message) => LogIfPermitted(LoggingLevel.Warn, message);
-    public void E(string message) => LogIfPermitted(LoggingLevel.Error, message);
-    
-    protected readonly LoggingLevel Threshold;
-    protected readonly string ThreadLabel;
+    public static void AddLogHandler(LogHandler handler) => _logHandlers.Add(handler);
 
-    private void LogIfPermitted(LoggingLevel level, string text)
-    {
-        if (!ShouldLog(level))
-            return;
-        
-        Log(level, FormatLog(level, $"{LabelRepresentation(level)}:{ThreadLabel} -> {text}"));
-    }
-
-    private string FormatLog(LoggingLevel level, string rawMessage) =>
-        $"{LabelRepresentation(level)}:{ThreadLabel} -> {rawMessage}";
-
-    protected abstract void Log(LoggingLevel level, string formattedText);
-
-    private static string LabelRepresentation(LoggingLevel level) => level switch
+    public static string LabelRepresentation(LoggingLevel level) => level switch
     {
         LoggingLevel.Trace => "T",
         LoggingLevel.Debug => "D",
@@ -39,6 +20,28 @@ public abstract class Logger
         LoggingLevel.Error => "E",
         _ => throw new InvalidOperationException("Attempt to log to an unknown log level")
     };
+}
 
-    private bool ShouldLog(LoggingLevel level) => level >= Threshold;
+public partial class Logger
+{
+    private readonly string _callerName;
+    
+    public Logger(string callerName)
+    {
+        _callerName = callerName;
+    }
+    
+    public void T(string message) => Log(LoggingLevel.Trace, message);
+    public void D(string message) => Log(LoggingLevel.Debug, message);
+    public void I(string message) => Log(LoggingLevel.Info, message);
+    public void W(string message) => Log(LoggingLevel.Warn, message);
+    public void E(string message) => Log(LoggingLevel.Error, message);
+
+    private void Log(LoggingLevel level, string message)
+    {
+        foreach (var handler in _logHandlers)
+        {
+            handler.Log(level, message, _callerName);
+        }
+    }
 }

@@ -70,7 +70,7 @@ public class MinecraftInstallTask : Runnable
 
     public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
-        var log = LogManager.GetLogger();
+        var log = new Logger($"MinecraftInstaller({_versionName})");
         progress?.Invoke(this, 0.0);
         log.I($"Installing minecraft {_versionName}");
         log.D("Getting version information");

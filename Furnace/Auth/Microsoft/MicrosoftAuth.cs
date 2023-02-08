@@ -26,7 +26,7 @@ public class MicrosoftAuth
     public MicrosoftAuth()
     {
         _httpClient = new HttpClient();
-        _logger = LogManager.GetLogger();
+        _logger = new Logger("MicrosoftAuth");
     }
 
     private static PublicClientApplicationOptions GetOptions() => new PublicClientApplicationOptions

@@ -55,7 +55,7 @@ public class FabricInstallTask : Runnable
 
     public override async Task RunAsync(ReportProgress? progress, CancellationToken ct)
     {
-        var log = LogManager.GetLogger($"Installing Fabric {_gameVersion}/{_fabricVersion}");
+        var log = new Logger($"Installing Fabric {_gameVersion}/{_fabricVersion}");
         log.I("Installing fabric");
         var client = new HttpClient();
         var loaderMetaUri = new Uri(string.Format(FabricLoaderMetaUrl, _gameVersion, _fabricVersion));

@@ -29,7 +29,7 @@ public class UserProfileManager
         _rootDir = rootDirectory;
     }
     
-    static UserProfileManager() { Logger = LogManager.GetLogger(); }
+    static UserProfileManager() { Logger = new Logger("UserProfileManager"); }
 
     public static async Task<UserProfileManager> LoadProfilesAsync(DirectoryInfo rootDirectory)
     {

@@ -47,16 +47,20 @@ public static class HttpJsonGetTask
 {
     private readonly HttpClient _client;
     private readonly Uri _uri;
-    private readonly Logger _logger;
+    private static readonly Logger _logger;
     private readonly int _maxRetries;
     private readonly TimeSpan _timeout;
     private readonly Func<string, T> _converter;
+
+    static HttpJsonGetTaskInner()
+    {
+        _logger = new Logger("HttpGetJson");
+    }
 
     public HttpJsonGetTaskInner(HttpClient client, Uri uri, Func<string, T> converter, int maxRetries, TimeSpan retryTimeout)
     {
         _client = client;
         _uri = uri;
-        _logger = LogManager.GetLogger();
         _maxRetries = maxRetries;
         _timeout = retryTimeout;
         _converter = converter;
