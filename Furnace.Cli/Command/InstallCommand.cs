@@ -1,5 +1,6 @@
 ﻿using Furnace.Log;
 using Furnace.Modrinth;
+using Furnace.Utility.Extension;
 using Spectre.Console;
 
 namespace Furnace.Cli.Command;
@@ -27,20 +28,31 @@ public static class InstallCommand
             installer = PackInstallTask.InstallLatest(Program.RootDirectory, packId);
 
         if (verbose)
+            Logger.RegisterHandler(new ConsoleLoggingHandler(LoggingLevel.Debug));
+        
+        await installer.RunAsync(CancellationToken.None);
+    }
+
+    public static async Task DeletePackAsync(string? packId, bool force)
+    {
+        packId ??= LaunchPack.AskForPackId("Which pack should be deleted?");
+        var targetDirectory = Program.RootDirectory.CreateSubdirectory($"Instances/{packId}");
+        string text;
+        await using (var stream = targetDirectory.GetFileInfo("modrinth.index.json").OpenRead())
         {
-            LogManager.Level = LoggingLevel.Debug;
-            await installer.RunAsync(CancellationToken.None);
+            using var reader = new StreamReader(stream);
+            text = await reader.ReadToEndAsync();
         }
-        else
+
+        var index = Modrinth.Data.PackIndex.PackIndex.FromJson(text);
+        
+        if (!force && !AnsiConsole.Confirm($"Delete the pack: {index.Name}? ({packId})", false))
         {
-            LogManager.Level = LoggingLevel.NeverLog;
-            await AnsiConsole.Status()
-                .StartAsync($"Installing modrinth pack {packId}...", async ctx => 
-                {
-                    ctx.Spinner(Spinner.Known.Star);
-                    ctx.SpinnerStyle(Style.Parse("green"));
-                    await installer.RunAsync(CancellationToken.None);
-                });
+            AnsiConsole.MarkupLine("Cancelling Operation.");
+            return;
         }
+
+        targetDirectory.Delete(true);
+        AnsiConsole.MarkupLine($"Deleted {index.Name} ({packId})");
     }
 }

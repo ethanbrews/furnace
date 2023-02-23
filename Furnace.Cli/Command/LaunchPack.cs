@@ -24,13 +24,13 @@ public static class LaunchPack
             }).Select(t => t.Result).ToList();
     }
     
-    private static string AskForPackId()
+    public static string AskForPackId(string prompt)
     {
         var indexDirectoryPairs = GetAllInstalledPacksAndDirectories();
         
         var selectedName = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title("Which pack should be launched?")
+                .Title(prompt)
                 .PageSize(10)
                 .MoreChoicesText("[grey](Move up and down to reveal more packs)[/]")
                 .AddChoices(indexDirectoryPairs.Select(x => x.Item2.Name)));
@@ -68,26 +68,14 @@ public static class LaunchPack
     
     public static async Task LaunchAsync(string? packId, bool verbose, bool createScript, bool serverSide)
     {
-        packId ??= AskForPackId();
-
-        LogManager.Level = verbose ? LoggingLevel.Debug : LoggingLevel.NeverLog;
+        packId ??= AskForPackId("Which pack should be launched?");
 
         var launcher = new Modrinth.PackLaunchTask(packId, Program.RootDirectory,
             serverSide ? GameInstallType.Server : GameInstallType.Client);
-
+        
         if (verbose)
-        {
-            await launcher.RunAsync(CancellationToken.None);
-        }
-        else
-        {
-            await AnsiConsole.Status()
-                .StartAsync($"Running modrinth pack {packId}...", async ctx => 
-                {
-                    ctx.Spinner(Spinner.Known.Star);
-                    ctx.SpinnerStyle(Style.Parse("green"));
-                    await launcher.RunAsync(CancellationToken.None);
-                });
-        }
+            Logger.RegisterHandler(new ConsoleLoggingHandler(LoggingLevel.Debug));
+
+        await launcher.RunAsync(CancellationToken.None);
     }
 }

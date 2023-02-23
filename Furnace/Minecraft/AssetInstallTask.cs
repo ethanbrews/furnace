@@ -1,62 +1,48 @@
 ﻿using Furnace.Log;
 using Furnace.Minecraft.Data.AssetManifest;
-using Furnace.Tasks;
 using Furnace.Utility.Extension;
+using Furnace.Web;
 
 namespace Furnace.Minecraft;
 
-public class AssetInstallTask : Runnable
+public class AssetInstallTask : Runnable.Runnable
 {
     private readonly Data.GameManifest.GameManifest _gameManifest;
     private readonly DirectoryInfo _directoryInfo;
     private const string AssetUrl = "https://resources.download.minecraft.net/{0}/{1}";
-    private readonly HttpClient _httpClient;
 
-    public AssetInstallTask(HttpClient httpClient, Data.GameManifest.GameManifest gameManifest, DirectoryInfo gameDir)
+    public AssetInstallTask(Data.GameManifest.GameManifest gameManifest, DirectoryInfo gameDir)
     {
         _gameManifest = gameManifest;
         _directoryInfo = gameDir;
-        _httpClient = httpClient;
     }
     
     public override async Task RunAsync(CancellationToken ct)
     {
-        var log = LogManager.GetLogger($"Installer {_gameManifest.Id} (Assets)");
-        
-        log.I($"Installing minecraft {_gameManifest.Id} assets");
-        log.D("Getting asset index");
+        Logger.I($"Installing minecraft {_gameManifest.Id} assets");
+        Logger.D("Getting asset index");
 
-        var assetIndex = await HttpJsonGetTask
-            .Create<AssetManifest>(_httpClient, _gameManifest.AssetIndex.Url).RunAsync(ct);
+        var assetIndex = await WebService.GetJson<AssetManifest>(_gameManifest.AssetIndex.Url, ct);
 
-        log.D("Creating local files");
+        Logger.D("Creating local files");
         var assetsDir = _directoryInfo.CreateSubdirectory("assets");
         var objectsDir = assetsDir.CreateSubdirectory("objects");
         var assetsIndexDir = assetsDir.CreateSubdirectory("indexes");
-        
-        log.D("Scheduling files for download");
 
-        var scheduledTaskQueue = new SharedResourceQueue<HttpClient>(1, _ => new HttpClient());
-
-        foreach (var asset in assetIndex.Objects.Values)
+        Logger.D("Downloading assets.");
+        await Parallel.ForEachAsync(assetIndex.Objects.Values, ct, async (asset, token) =>
         {
-            await scheduledTaskQueue.Enqueue(client => new FileDownloadTask(
-                client,
+            await WebService.DownloadFileAsync(
                 new Uri(string.Format(AssetUrl, asset.Hash[..2], asset.Hash)),
-                objectsDir.GetFileInfo($"{asset.Hash[..2]}/{asset.Hash}")
-            ).RunAsync(ct));
-        }
-        
-        await using (var stream = assetsIndexDir.GetFileInfo($"{_gameManifest.Id}.json").OpenWrite())
-        {
-            await using (var streamWriter = new StreamWriter(stream))
-            {
-                await streamWriter.WriteAsync(assetIndex.ToJson());
-            }
-        }
+                objectsDir.GetFileInfo($"{asset.Hash[..2]}/{asset.Hash}"),
+                token
+            );
+        });
 
-        log.I($"Scheduled {scheduledTaskQueue.ItemsInQueue} assets for install");
-        await scheduledTaskQueue.RunAsync(ct);
-        log.I($"All assets are installed!");
+        Logger.D("Writing asset index.");
+        await using var stream = assetsIndexDir.GetFileInfo($"{_gameManifest.Id}.json").OpenWrite();
+        await using var streamWriter = new StreamWriter(stream);
+        await streamWriter.WriteAsync(assetIndex.ToJson());
+        Logger.I("All assets are installed!");
     }
 }

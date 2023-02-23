@@ -28,8 +28,9 @@ public class UserProfileManager
         _instance = this;
         _rootDir = rootDirectory;
     }
-    
-    static UserProfileManager() { Logger = LogManager.GetLogger(); }
+
+    static UserProfileManager()
+    { Logger = Logger.GetLogger(); }
 
     public static async Task<UserProfileManager> LoadProfilesAsync(DirectoryInfo rootDirectory)
     {

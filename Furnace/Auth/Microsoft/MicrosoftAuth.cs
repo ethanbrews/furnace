@@ -4,7 +4,6 @@ using System.Net.Http.Json;
 using System.Security.Authentication;
 using System.Text.Json;
 using Furnace.Auth.Microsoft.Data;
-using Furnace.Log;
 using Microsoft.Identity.Client;
 using Logger = Furnace.Log.Logger;
 
@@ -17,7 +16,7 @@ public class MicrosoftAuth
     private readonly HttpClient _httpClient;
 
     private const string XboxAuthUri = "https://user.auth.xboxlive.com/user/authenticate";
-    private const string XSTSAuthUri = "https://xsts.auth.xboxlive.com/xsts/authorize";
+    private const string XstsAuthUri = "https://xsts.auth.xboxlive.com/xsts/authorize";
     private const string MinecraftAuthUri = "https://api.minecraftservices.com/authentication/login_with_xbox";
     private const string MinecraftEntitlementsUri = "https://api.minecraftservices.com/entitlements/mcstore";
     private const string MinecraftProfileUri = "https://api.minecraftservices.com/minecraft/profile";
@@ -26,7 +25,7 @@ public class MicrosoftAuth
     public MicrosoftAuth()
     {
         _httpClient = new HttpClient();
-        _logger = LogManager.GetLogger();
+        _logger = Logger.GetLogger();
     }
 
     private static PublicClientApplicationOptions GetOptions() => new PublicClientApplicationOptions
@@ -40,7 +39,7 @@ public class MicrosoftAuth
     {
         var msAuth = await AuthenticateWithMicrosoftAsync();
         var xboxLiveAuth = await AuthenticateWithXboxLiveAsync(msAuth);
-        var xstsAuth = await AuthenticateXSTSLiveAsync(xboxLiveAuth);
+        var xstsAuth = await AuthenticateXstsLiveAsync(xboxLiveAuth);
         var mcAuth = await AuthenticateWithMinecraftAsync(xstsAuth);
         var ownsGame = await DoesUserOwnGameAsync(mcAuth);
         var mcProfile = await GetUserProfileAsync(mcAuth);
@@ -87,9 +86,9 @@ public class MicrosoftAuth
         return XBoxLiveAuthenticationResponse.FromJson(await streamReader.ReadToEndAsync());
     }
 
-    private async Task<XSTSAuthenticationResponse> AuthenticateXSTSLiveAsync(XBoxLiveAuthenticationResponse xboxResponse)
+    private async Task<XSTSAuthenticationResponse> AuthenticateXstsLiveAsync(XBoxLiveAuthenticationResponse xboxResponse)
     {
-        var response = await _httpClient.PostAsJsonAsync(new Uri(XSTSAuthUri), new XSTSAuthenticationRequest
+        var response = await _httpClient.PostAsJsonAsync(new Uri(XstsAuthUri), new XSTSAuthenticationRequest
         {
             Properties = new XSTSAuthenticationRequestProperties
             {
@@ -157,13 +156,9 @@ public class MicrosoftAuth
         {
             return false;
         }
-        JsonElement items;
-        contentJson.TryGetValue("items", out items);
-        if (items.GetArrayLength() == 0)
-        {
-            return false;
-        }
-        return true;
+
+        contentJson.TryGetValue("items", out var items);
+        return items.GetArrayLength() != 0;
     }
 
     private async Task<MinecraftProfileResponse> GetUserProfileAsync(MinecraftXboxAuthenticationResponse mcAuth)

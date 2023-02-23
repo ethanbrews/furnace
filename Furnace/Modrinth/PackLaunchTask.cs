@@ -3,25 +3,21 @@ using Furnace.Auth;
 using Furnace.Log;
 using Furnace.Minecraft;
 using Furnace.Minecraft.Data;
-using Furnace.Minecraft.Data.GameManifest;
-using Furnace.Tasks;
 using Furnace.Utility;
 using Furnace.Utility.Extension;
 
 namespace Furnace.Modrinth;
 
-public class PackLaunchTask : Runnable
+public class PackLaunchTask : Runnable.Runnable
 {
     private readonly string _packId;
     private readonly DirectoryInfo _rootDir;
-    private readonly Logger _logger;
     private readonly GameInstallType _runType;
     
     public PackLaunchTask(string packId, DirectoryInfo rootDirectory, GameInstallType runType)
     {
         _packId = packId;
         _rootDir = rootDirectory;
-        _logger = LogManager.GetLogger();
         _runType = runType;
     }
 
@@ -31,9 +27,9 @@ public class PackLaunchTask : Runnable
         CancellationToken ct
     )
     {
-        var minecraftManifest = await JsonFileReader.Read<Furnace.Minecraft.Data.GameManifest.GameManifest>(
-            _rootDir.GetFileInfo($"minecraft/versions/{minecraftVersionName}/manifest.json") 
-        ).RunAsync(ct);
+        var minecraftManifest = await _rootDir
+            .GetFileInfo($"minecraft/versions/{minecraftVersionName}/manifest.json")
+            .ReadAsync<Minecraft.Data.GameManifest.GameManifest>(ct);
         
         var vanillaBuilder = new MinecraftCommandBuilder(minecraftManifest, auth)
         {
@@ -42,7 +38,7 @@ public class PackLaunchTask : Runnable
             GameDirectory = _rootDir.CreateSubdirectory($"Instances/{_packId}")
         };
         
-        _logger.D($"Natives directory is {vanillaBuilder.NativesDirectory.FullName}");
+        Logger.D($"Natives directory is {vanillaBuilder.NativesDirectory.FullName}");
         var nativesIntermediaryDirectory = FileUtil.CreateUniqueTempDirectory();
         var librariesDir = _rootDir.CreateSubdirectory("minecraft/libraries");
         foreach(var library in minecraftManifest.Libraries)
@@ -137,10 +133,10 @@ public class PackLaunchTask : Runnable
         ArgumentNullException.ThrowIfNull(profile);
         
         // Read Instances/(PackId)/modrinth.index.json
-        var packInfo = await JsonFileReader.Read<Data.PackIndex.PackIndex>(
-            _rootDir.GetFileInfo($"Instances/{_packId}/modrinth.index.json") 
-        ).RunAsync(ct);
-        
+        var packInfo = await _rootDir
+            .GetFileInfo($"Instances/{_packId}/modrinth.index.json")
+            .ReadAsync<Data.PackIndex.PackIndex>(ct);
+
         var minecraftVersion = packInfo.Dependencies.Minecraft;
         var fabricVersion = packInfo.Dependencies.FabricLoader;
         

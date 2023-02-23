@@ -1,13 +1,11 @@
 ﻿using Furnace.Fabric.Data.FabricLoaderMeta;
-using Furnace.Log;
-using Furnace.Minecraft;
 using Furnace.Minecraft.Data;
-using Furnace.Tasks;
 using Furnace.Utility.Extension;
+using Furnace.Web;
 
 namespace Furnace.Fabric;
 
-public class FabricInstallTask : Runnable
+public class FabricInstallTask : Runnable.Runnable
 {
     private readonly string _gameVersion;
     private readonly string _fabricVersion;
@@ -16,7 +14,7 @@ public class FabricInstallTask : Runnable
     private readonly GameInstallType _installType;
     private readonly DirectoryInfo _rootDir;
 
-    private FabricInstallTask(string gameVersion, string fabricVersion, Minecraft.Data.GameInstallType installType, DirectoryInfo rootDir)
+    private FabricInstallTask(string gameVersion, string fabricVersion, GameInstallType installType, DirectoryInfo rootDir)
     {
         _gameVersion = gameVersion;
         _fabricVersion = fabricVersion;
@@ -24,7 +22,7 @@ public class FabricInstallTask : Runnable
         _rootDir = rootDir;
     }
 
-    public static FabricInstallTask SpecificVersion(string gameVersion, string fabricVersion, Minecraft.Data.GameInstallType installType, DirectoryInfo rootDir) =>
+    public static FabricInstallTask SpecificVersion(string gameVersion, string fabricVersion, GameInstallType installType, DirectoryInfo rootDir) =>
         new(gameVersion, fabricVersion, installType, rootDir);
 
     public static string LibraryNameToPath(string name)
@@ -36,67 +34,62 @@ public class FabricInstallTask : Runnable
         return $"{packageName.Replace(".", "/")}/{jarName}/{versionName}/{jarName}-{versionName}.jar";
     }
 
-    private static async Task<Task> InstallLibrariesAsync(IEnumerable<Library> libraries, DirectoryInfo libraryDir, CancellationToken ct)
+    private static async Task InstallLibrariesAsync(IEnumerable<Library> libraries, DirectoryInfo libraryDir, CancellationToken ct)
     {
-        var sharedQueue = new SharedResourceQueue<HttpClient>(1, _ => new HttpClient());
-        foreach (var lib in libraries)
+        await Parallel.ForEachAsync(libraries, ct, async (lib, token) =>
         {
             var path = LibraryNameToPath(lib.Name);
             var uriBuilder = new UriBuilder(lib.Url)
             {
                 Path = path
             };
-
-            await sharedQueue.Enqueue(client => new FileDownloadTask(client, uriBuilder.Uri, libraryDir.GetFileInfo(path)).RunAsync(ct));
-        }
-
-        return sharedQueue.RunAsync(ct);
+            await WebService.DownloadFileAsync(uriBuilder.Uri, libraryDir.GetFileInfo(path), token);
+        });
     }
 
     public override async Task RunAsync(CancellationToken ct)
     {
-        var log = LogManager.GetLogger($"Installing Fabric {_gameVersion}/{_fabricVersion}");
-        log.I("Installing fabric");
-        var client = new HttpClient();
+        Logger.I("Installing fabric");
         var loaderMetaUri = new Uri(string.Format(FabricLoaderMetaUrl, _gameVersion, _fabricVersion));
-        var fabricMeta = await HttpJsonGetTask.Create<FabricLoaderMeta>(client, loaderMetaUri).RunAsync(ct);
+        var fabricMeta = await WebService.GetJson<FabricLoaderMeta>(loaderMetaUri, ct);
         var libraryDir = _rootDir.CreateSubdirectory("minecraft/libraries");
-        log.D("Scheduling common library installation");
-        var commonLibraryTask = await InstallLibrariesAsync(fabricMeta.LauncherMeta.Libraries.Common, libraryDir , ct);
-        log.D($"Scheduling sided library installation (installType={_installType})");
-        var sidedLibraryTask = await InstallLibrariesAsync(_installType == GameInstallType.Client ? 
+        Logger.D("Scheduling common library installation");
+        var commonLibraryTask = InstallLibrariesAsync(fabricMeta.LauncherMeta.Libraries.Common, libraryDir , ct);
+        Logger.D($"Scheduling sided library installation (installType={_installType})");
+        var sidedLibraryTask = InstallLibrariesAsync(_installType == GameInstallType.Client ? 
                 fabricMeta.LauncherMeta.Libraries.Client : fabricMeta.LauncherMeta.Libraries.Server, libraryDir , ct);
 
         var fabricDirectory = _rootDir.CreateSubdirectory($"minecraft/fabric/");
         
-        log.D("Installing fabric loader");
+        Logger.D("Installing fabric loader");
         var loaderUriBuilder = new UriBuilder(FabricMetaRootUrl)
         {
             Path = LibraryNameToPath(fabricMeta.Loader.Maven)
         };
-        await new FileDownloadTask(
-            client, 
+        await WebService.DownloadFileAsync(
             loaderUriBuilder.Uri, 
             fabricDirectory
                 .CreateSubdirectory($"loader/{fabricMeta.Loader.Version}")
-                .GetFileInfo($"fabric-loader-{fabricMeta.Loader.Version}.jar")
-        ).RunAsync(ct);
+                .GetFileInfo($"fabric-loader-{fabricMeta.Loader.Version}.jar"),
+            ct
+        );
 
-        log.D("Installing fabric intermediary");
+        Logger.D("Installing fabric intermediary");
         var intermediaryUriBuilder = new UriBuilder(FabricMetaRootUrl)
         {
             Path = LibraryNameToPath(fabricMeta.Intermediary.Maven)
         };
-        await new FileDownloadTask(
-            client, 
+        
+        await WebService.DownloadFileAsync(
             intermediaryUriBuilder.Uri, 
             fabricDirectory
                 .CreateSubdirectory($"intermediary/{fabricMeta.Intermediary.Version}")
-                .GetFileInfo($"fabric-intermediary-{fabricMeta.Intermediary.Version}.jar")
-        ).RunAsync(ct);
-        
-        
-        log.D("Writing fabric metadata...");
+                .GetFileInfo($"fabric-intermediary-{fabricMeta.Intermediary.Version}.jar"),
+            ct
+        );
+
+
+        Logger.D("Writing fabric metadata...");
         await using (var fs = fabricDirectory
                          .GetFileInfo(
                              $"loader/{fabricMeta.Loader.Version}/fabric-meta-{fabricMeta.Loader.Version}.json")
@@ -110,6 +103,6 @@ public class FabricInstallTask : Runnable
 
         await commonLibraryTask;
         await sidedLibraryTask;
-        log.I("Fabric is installed!");
+        Logger.I("Fabric is installed!");
     }
 }

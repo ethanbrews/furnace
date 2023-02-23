@@ -2,6 +2,7 @@
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using Furnace.Cli.Command;
+using Furnace.Log;
 
 var forceOption = new Option<bool>(new[]{ "--force", "-f" }, () => false, "Perform destructive operation without confirmation.");
 var selectNewUserOption = new Option<bool>("--select", () => true, "Select the newly added user account as the default.");
@@ -51,6 +52,13 @@ launchCommand.SetHandler(LaunchPack.LaunchAsync, packIdArgument, verboseOption, 
 var listCommand = new Command("list", "List installed modrinth packs");
 listCommand.SetHandler(LaunchPack.ListPacks, verboseOption);
 
+var deleteCommand = new Command("delete", "Delete an installed modrinth pack.");
+deleteCommand.AddArgument(packIdArgument);
+deleteCommand.AddOption(forceOption);
+deleteCommand.SetHandler(InstallCommand.DeletePackAsync, packIdArgument, forceOption);
+
+var openFolderCommand = new Command("open", "Open the folder containing the given pack files.");
+
 usersCommand.AddCommand(usersAddCommand);
 usersCommand.AddCommand(userSelectCommand);
 usersCommand.AddCommand(usersDeleteCommand);
@@ -59,6 +67,13 @@ rootCommand.AddCommand(usersCommand);
 rootCommand.AddCommand(installCommand);
 rootCommand.AddCommand(launchCommand);
 rootCommand.AddCommand(listCommand);
+rootCommand.AddCommand(deleteCommand);
+
+#if DEBUG
+Logger.RegisterHandler(new DebugLoggingHandler(LoggingLevel.Trace));
+#else
+Logger.RegisterHandler(new DebugLoggingHandler(LoggingLevel.Debug));
+#endif
 
 var parser = new CommandLineBuilder(rootCommand)
     .UseVersionOption()

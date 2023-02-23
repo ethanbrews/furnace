@@ -2,13 +2,14 @@
 using Furnace.Log;
 using Furnace.Minecraft;
 using Furnace.Minecraft.Data;
-using Furnace.Tasks;
+using Furnace.Runnable;
 using Furnace.Utility;
 using Furnace.Utility.Extension;
+using Furnace.Web;
 
 namespace Furnace.Modrinth;
 
-public class PackInstallTask : Runnable
+public class PackInstallTask : Runnable.Runnable
 {
     private const string ModrinthVersionListUri = "https://api.modrinth.com/v2/project/{0}/version";
     private const string MrPackIndexFileName = "modrinth.index.json";
@@ -44,15 +45,13 @@ public class PackInstallTask : Runnable
 
     public override async Task RunAsync(CancellationToken ct)
     {
-        var logger = LogManager.GetLogger();
-        var client = new HttpClient();
         
-        logger.D("Getting Pack Data");
-        var allVersions = await HttpJsonGetTask.Create(
-            client,
+        Logger.D("Getting Pack Data");
+        var allVersions = await WebService.GetJson(
             new Uri(string.Format(ModrinthVersionListUri, _packId)),
-            Data.ProjectVersionList.ProjectVersion.FromJson
-        ).RunAsync(ct);
+            Data.ProjectVersionList.ProjectVersion.FromJson,
+            ct
+        );
 
         var candidateVersions = allVersions
             .Where(_viableCandidateTest)
@@ -69,12 +68,12 @@ public class PackInstallTask : Runnable
             selectedVersion = candidateVersions.First();
         }
         
-        logger.I($"Selected valid candidate for installation: {selectedVersion.Id}");
+        Logger.I($"Selected valid candidate for installation: {selectedVersion.Id}");
         
         var packZip = new FileInfo(Path.GetTempFileName());
         // Downloading the mr-pack file. The files list may contain other mirrors to try on failure.
         // TODO: Allow mirrors in `FileDownloadTask`
-        await new FileDownloadTask(client, selectedVersion.Files[0].Url, packZip).RunAsync(ct);
+        await WebService.DownloadFileAsync(selectedVersion.Files[0].Url, packZip, ct);
         var extractDirectory = FileUtil.CreateUniqueTempDirectory();
         System.IO.Compression.ZipFile.ExtractToDirectory(packZip.FullName, extractDirectory.FullName);
         var indexFile = extractDirectory.GetFiles().First(x => x.Name == MrPackIndexFileName);
@@ -82,39 +81,33 @@ public class PackInstallTask : Runnable
             await new StreamReader(indexFile.OpenRead()).ReadToEndAsync(ct)
         );
 
-        logger.I($"Beginning Installation...");
+        Logger.I($"Beginning Installation...");
         var installDir = _rootDirectory.CreateSubdirectory($"Instances/{_packId}");
         indexFile.CopyTo(installDir.GetFileInfo(MrPackIndexFileName).FullName, true);
-        
-        var sharedResourceQ = new SharedResourceQueue<HttpClient>(2, i => new HttpClient());
-        foreach (var file in indexData.Files)
-        {
-            await sharedResourceQ.Enqueue(
-                c => new FileDownloadTask(c, file.Downloads[0], installDir.GetFileInfo(file.Path)).RunAsync(ct)
-            );
-        }
 
-        var parallelTasks = new List<Task>();
-        logger.I($"Starting download of {sharedResourceQ.ItemsInQueue} items.");
-        await sharedResourceQ.RunAsync(ct);
-        
-        logger.I($"Installing dependency: Minecraft({indexData.Dependencies.Minecraft})");
-        parallelTasks.Add(MinecraftInstallTask.InstallSpecificVersion(
+        await Parallel.ForEachAsync(indexData.Files, ct, async (file, token) =>
+        {
+            await WebService.DownloadFileAsync(file.Downloads[0], installDir.GetFileInfo(file.Path), token);
+        });
+
+        Logger.I($"Installing dependency: Minecraft({indexData.Dependencies.Minecraft})");
+        var minecraftTask = MinecraftInstallTask.InstallSpecificVersion(
             indexData.Dependencies.Minecraft,
             _rootDirectory,
             GameInstallType.Client
-        ).RunAsync(ct));
+        ).RunAsync(ct);
         
-        logger.I($"Installing dependency: FabricLoader({indexData.Dependencies.FabricLoader})");
-        parallelTasks.Add(FabricInstallTask.SpecificVersion(
+        Logger.I($"Installing dependency: FabricLoader({indexData.Dependencies.FabricLoader})");
+        var fabricTask = FabricInstallTask.SpecificVersion(
             indexData.Dependencies.Minecraft,
             indexData.Dependencies.FabricLoader,
             GameInstallType.Client,
             _rootDirectory
-        ).RunAsync(ct));
-        
-        
-        await Task.WhenAll(parallelTasks);
-        logger.I($"Installation completed");
+        ).RunAsync(ct);
+
+
+        await fabricTask;
+        await minecraftTask;
+        Logger.I($"Installation completed");
     }
 }

@@ -1,12 +1,12 @@
 ﻿using System.Runtime.InteropServices;
 using Furnace.Log;
 using Furnace.Minecraft.Data.GameManifest;
-using Furnace.Tasks;
 using Furnace.Utility.Extension;
+using Furnace.Web;
 
 namespace Furnace.Minecraft;
 
-public class LibraryInstallTask : Runnable
+public class LibraryInstallTask : Runnable.Runnable
 {
     private readonly GameManifest _gameManifest;
     private readonly DirectoryInfo _gameDir;
@@ -19,26 +19,22 @@ public class LibraryInstallTask : Runnable
     
     public override async Task RunAsync(CancellationToken ct)
     {
-        var log = LogManager.GetLogger($"Installer {_gameManifest.Id} (Libraries)");
-        log.I("Installing libraries");
+        Logger.I("Installing libraries");
         var libDir = _gameDir.CreateSubdirectory("libraries");
         
-        var scheduledTaskQueue = new SharedResourceQueue<HttpClient>(1, _ => new HttpClient());
-
-        foreach (var library in _gameManifest.Libraries)
+        Logger.D("Downloading libraries");
+        await Parallel.ForEachAsync(_gameManifest.Libraries, ct, async (library, token) =>
         {
             if (library.SystemMeetsRules)
             {
-                await scheduledTaskQueue.Enqueue(client => new FileDownloadTask(
-                    client,
+                await WebService.DownloadFileAsync(
                     library.Downloads.Artifact.Url,
-                    libDir.GetFileInfo(library.Downloads.Artifact.Path)
-                ).RunAsync(ct));
+                    libDir.GetFileInfo(library.Downloads.Artifact.Path),
+                    token
+                );
             }
-        }
-
-        log.I($"Scheduling {scheduledTaskQueue.ItemsInQueue} library files for download");
-        await scheduledTaskQueue.RunAsync(ct);
-        log.I("Library files are installed");
+        });
+        
+        Logger.I("Library files are installed");
     }
 }
