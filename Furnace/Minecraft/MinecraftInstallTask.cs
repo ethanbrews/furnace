@@ -8,6 +8,7 @@ namespace Furnace.Minecraft;
 
 public class MinecraftInstallTask : Runnable.Runnable
 {
+    public override string Tag => $"Minecraft install ({_versionName})";
     private readonly string _versionName;
     private readonly DirectoryInfo _rootDir;
     private const string VersionManifestUri = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
@@ -58,12 +59,14 @@ public class MinecraftInstallTask : Runnable.Runnable
 
     public override async Task RunAsync(CancellationToken ct)
     {
+        Progress.Report(0.0);
         Logger.I($"Installing minecraft {_versionName}");
         Logger.D("Getting version information");
 
         var allVersions =
             await WebService.GetJson<Data.VersionManifest.VersionManifest>(new Uri(VersionManifestUri), ct);
 
+        Progress.Report(0.1);
         var targetVersion = allVersions.Versions.First(x => x.Id == _versionName switch
         {
             "release" => allVersions.Latest.Release,
@@ -76,6 +79,7 @@ public class MinecraftInstallTask : Runnable.Runnable
         Logger.D("Getting game manifest information");
         var gameManifest = await WebService.GetJson<GameManifest>(targetVersion.Url, ct);
         
+        Progress.Report(0.2);
         Logger.D("Creating local files");
         var dir = _rootDir.CreateSubdirectory("minecraft");
         dir.Create();
@@ -87,7 +91,7 @@ public class MinecraftInstallTask : Runnable.Runnable
             Logger.D("Scheduling game assets installation");
             parallelTasks.Add(new AssetInstallTask(gameManifest, dir).RunAsync(ct));
         }
-        
+        Progress.Report(0.4);
         Logger.D("Scheduling game libraries installation");
         parallelTasks.Add(new LibraryInstallTask(gameManifest, dir).RunAsync(ct));
 
@@ -95,5 +99,6 @@ public class MinecraftInstallTask : Runnable.Runnable
         parallelTasks.Add(DownloadGameFilesAsync(gameManifest, ct));
 
         await Task.WhenAll(parallelTasks);
+        Progress.Report(1.0);
     }
 }

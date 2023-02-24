@@ -7,6 +7,7 @@ namespace Furnace.Minecraft;
 
 public class AssetInstallTask : Runnable.Runnable
 {
+    public override string Tag => $"Minecraft assets install ({_gameManifest.Id})";
     private readonly Data.GameManifest.GameManifest _gameManifest;
     private readonly DirectoryInfo _directoryInfo;
     private const string AssetUrl = "https://resources.download.minecraft.net/{0}/{1}";

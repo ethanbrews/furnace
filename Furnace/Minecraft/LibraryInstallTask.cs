@@ -8,6 +8,7 @@ namespace Furnace.Minecraft;
 
 public class LibraryInstallTask : Runnable.Runnable
 {
+    public override string Tag => $"Minecraft libraries install ({_gameManifest.Id})";
     private readonly GameManifest _gameManifest;
     private readonly DirectoryInfo _gameDir;
 

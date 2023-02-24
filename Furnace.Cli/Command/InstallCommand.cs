@@ -1,5 +1,7 @@
-﻿using Furnace.Log;
+﻿using Furnace.Cli.ConsoleTool;
+using Furnace.Log;
 using Furnace.Modrinth;
+using Furnace.Runnable;
 using Furnace.Utility.Extension;
 using Spectre.Console;
 
@@ -14,12 +16,14 @@ public static class InstallCommand
 
         PackInstallTask installer;
 
+        // Cannot specify potentially conflicting minecraft and version ids...
         if (versionId != null && minecraftVersion != null)
         {
             AnsiConsole.Write("Only specify a version ID or a minecraft version - not both");
             return;
         }
         
+        // Create the installer based on the given arguments
         if (versionId != null)
             installer = PackInstallTask.InstallPackVersion(Program.RootDirectory, packId, versionId);
         else if (minecraftVersion != null)
@@ -27,10 +31,18 @@ public static class InstallCommand
         else
             installer = PackInstallTask.InstallLatest(Program.RootDirectory, packId);
 
+        // When verbose, no progress will be shown. Instead, add the console as a debug logging handler.
         if (verbose)
+        {
             Logger.RegisterHandler(new ConsoleLoggingHandler(LoggingLevel.Debug));
+            await installer.RunAsync(CancellationToken.None);
+        }
+        else
+        {
+            var progressBar = new MultiProgress();
+            await installer.RunAsync(CancellationToken.None);
+        }
         
-        await installer.RunAsync(CancellationToken.None);
     }
 
     public static async Task DeletePackAsync(string? packId, bool force)

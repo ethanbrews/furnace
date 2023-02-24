@@ -7,6 +7,7 @@ namespace Furnace.Fabric;
 
 public class FabricInstallTask : Runnable.Runnable
 {
+    public override string Tag => $"Minecraft libraries install ({_fabricVersion} - {_gameVersion})";
     private readonly string _gameVersion;
     private readonly string _fabricVersion;
     private const string FabricLoaderMetaUrl = "https://meta.fabricmc.net/v2/versions/loader/{0}/{1}";

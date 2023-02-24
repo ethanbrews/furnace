@@ -10,6 +10,8 @@ namespace Furnace.Modrinth;
 
 public class PackLaunchTask : Runnable.Runnable
 {
+    public override string Tag => $"Modrinth launch ({_packId})";
+    
     private readonly string _packId;
     private readonly DirectoryInfo _rootDir;
     private readonly GameInstallType _runType;

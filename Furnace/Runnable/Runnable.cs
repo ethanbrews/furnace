@@ -16,5 +16,5 @@ public abstract class Runnable
         Progress = ProgressListener.Instance.GetProgress("Runnable");
     }
 
-    //public abstract string Tag { get; }
+    public abstract string Tag { get; }
 }

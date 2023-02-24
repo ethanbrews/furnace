@@ -11,6 +11,8 @@ namespace Furnace.Modrinth;
 
 public class PackInstallTask : Runnable.Runnable
 {
+    public override string Tag => $"Modrinth install ({_packId})";
+
     private const string ModrinthVersionListUri = "https://api.modrinth.com/v2/project/{0}/version";
     private const string MrPackIndexFileName = "modrinth.index.json";
 
