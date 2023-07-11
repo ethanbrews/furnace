@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Furnace\Furnace.csproj" />
+      <ProjectReference Include="..\Furnace.Lib\Furnace.Lib.csproj" />
     </ItemGroup>
 
 </Project>

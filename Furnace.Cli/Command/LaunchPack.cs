@@ -1,6 +1,8 @@
-﻿using Furnace.Log;
+﻿using Furnace.Lib.Log;
+using Furnace.Lib.Minecraft.Data;
+using Furnace.Lib.Modrinth;
+using Furnace.Lib.Utility.Extension;
 using Furnace.Minecraft.Data;
-using Furnace.Utility.Extension;
 using Spectre.Console;
 
 namespace Furnace.Cli.Command;
@@ -70,7 +72,7 @@ public static class LaunchPack
     {
         packId ??= AskForPackId("Which pack should be launched?");
 
-        var launcher = new Modrinth.PackLaunchTask(packId, Program.RootDirectory,
+        var launcher = new PackLaunchTask(packId, Program.RootDirectory,
             serverSide ? GameInstallType.Server : GameInstallType.Client);
         
         if (verbose)

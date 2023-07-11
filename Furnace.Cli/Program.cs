@@ -2,7 +2,7 @@
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using Furnace.Cli.Command;
-using Furnace.Log;
+using Furnace.Lib.Log;
 
 var forceOption = new Option<bool>(new[]{ "--force", "-f" }, () => false, "Perform destructive operation without confirmation.");
 var selectNewUserOption = new Option<bool>("--select", () => true, "Select the newly added user account as the default.");

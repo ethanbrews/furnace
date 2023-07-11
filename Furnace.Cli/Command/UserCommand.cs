@@ -1,4 +1,4 @@
-﻿using Furnace.Auth;
+﻿using Furnace.Lib.Auth;
 using Microsoft.Identity.Client;
 using Spectre.Console;
 
