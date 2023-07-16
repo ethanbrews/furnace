@@ -1,5 +1,5 @@
 ﻿using Furnace.Cli.ConsoleTool;
-using Furnace.Lib.Log;
+using Furnace.Lib.Logging;
 using Furnace.Lib.Minecraft;
 using Furnace.Lib.Minecraft.Data;
 using Furnace.Lib.Modrinth;

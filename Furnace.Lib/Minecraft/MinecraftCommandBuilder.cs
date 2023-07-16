@@ -14,7 +14,7 @@ public class MinecraftCommandBuilder
 
     public IList<FileInfo> ClassPathList { get; }
     public string MainClass { get; set; }
-    public required DirectoryInfo RootDirectory { get; init; }
+    public required DirectoryInfo RootDirectory { get; set; }
     public required DirectoryInfo NativesDirectory { get; init; }
     public required DirectoryInfo GameDirectory { get; init; }
 

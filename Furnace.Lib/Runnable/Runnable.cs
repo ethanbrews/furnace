@@ -1,4 +1,4 @@
-﻿using Furnace.Lib.Log;
+﻿using Furnace.Lib.Logging;
 
 namespace Furnace.Lib.Runnable;
 

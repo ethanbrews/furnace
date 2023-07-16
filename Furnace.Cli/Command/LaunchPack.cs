@@ -1,6 +1,7 @@
-﻿using Furnace.Lib.Log;
+﻿using Furnace.Lib.Logging;
 using Furnace.Lib.Minecraft.Data;
 using Furnace.Lib.Modrinth;
+using Furnace.Lib.Modrinth.Data;
 using Furnace.Lib.Utility.Extension;
 using Furnace.Minecraft.Data;
 using Spectre.Console;
@@ -34,7 +35,7 @@ public static class LaunchPack
             new SelectionPrompt<string>()
                 .Title(prompt)
                 .PageSize(10)
-                .MoreChoicesText("[grey](Move up and down to reveal more packs)[/]")
+                .MoreChoicesText("[grey](Move up and down to reveal more options)[/]")
                 .AddChoices(indexDirectoryPairs.Select(x => x.Item2.Name)));
 
         return indexDirectoryPairs.First(x => x.Item2.Name == selectedName).Item1.Name;
@@ -73,7 +74,8 @@ public static class LaunchPack
         packId ??= AskForPackId("Which pack should be launched?");
 
         var launcher = new PackLaunchTask(packId, Program.RootDirectory,
-            serverSide ? GameInstallType.Server : GameInstallType.Client);
+            serverSide ? GameInstallType.Server : GameInstallType.Client,
+            createScript ? PackLaunchAction.GenerateScript : PackLaunchAction.Launch);
         
         if (verbose)
             Logger.RegisterHandler(new ConsoleLoggingHandler(LoggingLevel.Debug));

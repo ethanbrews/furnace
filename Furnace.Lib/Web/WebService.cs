@@ -1,4 +1,4 @@
-﻿using Furnace.Lib.Log;
+﻿using Furnace.Lib.Logging;
 using Furnace.Lib.Utility;
 
 namespace Furnace.Lib.Web;

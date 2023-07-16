@@ -1,8 +1,10 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Furnace.Lib.Auth;
 using Furnace.Lib.Fabric;
 using Furnace.Lib.Minecraft;
 using Furnace.Lib.Minecraft.Data;
+using Furnace.Lib.Modrinth.Data;
 using Furnace.Lib.Utility;
 using Furnace.Lib.Utility.Extension;
 
@@ -15,12 +17,14 @@ public class PackLaunchTask : Runnable.Runnable
     private readonly string _packId;
     private readonly DirectoryInfo _rootDir;
     private readonly GameInstallType _runType;
+    private readonly PackLaunchAction _packLaunchAction;
     
-    public PackLaunchTask(string packId, DirectoryInfo rootDirectory, GameInstallType runType)
+    public PackLaunchTask(string packId, DirectoryInfo rootDirectory, GameInstallType runType, PackLaunchAction launchAction)
     {
         _packId = packId;
         _rootDir = rootDirectory;
         _runType = runType;
+        _packLaunchAction = launchAction;
     }
 
     private async Task<MinecraftCommandBuilder> GetVanillaCommandAsync(
@@ -119,13 +123,29 @@ public class PackLaunchTask : Runnable.Runnable
         return builder;
     }
     
-    private async Task WriteToStartFileAsync(MinecraftCommandBuilder builder)
+    private async Task WriteCommandToFileAsync(FileInfo file, MinecraftCommandBuilder builder)
     {
-        var startBat = _rootDir.GetFileInfo("start.bat");
-        await using var fs = startBat.OpenWrite();
+        await using var fs = file.OpenWrite();
         await using var writer = new StreamWriter(fs);
         await writer.WriteAsync(builder.Build());
 
+    }
+    
+    private static async Task ExecuteBatchFileAsync(FileInfo file, DirectoryInfo workingDirectory)
+    {
+        var process = new Process()
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = $"cmd /C \"{file.FullName}\"",
+                UseShellExecute = false,
+                CreateNoWindow = false,
+                WorkingDirectory = workingDirectory.FullName
+            }
+        };
+        process.Start();
+        await process.WaitForExitAsync();
     }
     
     public override async Task RunAsync(CancellationToken ct)
@@ -147,7 +167,26 @@ public class PackLaunchTask : Runnable.Runnable
         ArgumentNullException.ThrowIfNull(auth);
         var builder = await GetVanillaCommandAsync(minecraftVersion, auth, ct);
         builder = await OverwriteFabricDetailsAsync(builder, fabricVersion, ct);
-
-        await WriteToStartFileAsync(builder);
+        builder.RootDirectory = _rootDir.CreateSubdirectory($"Instances/{_packId}");
+        
+        FileInfo file;
+        switch (_packLaunchAction)
+        {
+            case PackLaunchAction.GenerateScript:
+                file = _rootDir.GetFileInfo("start.bat");
+                await WriteCommandToFileAsync(file, builder);
+                Logger.I($"Start script written to {file}");
+                break;
+            case PackLaunchAction.Launch:
+                file = new FileInfo(Path.GetTempFileName()+".bat");
+                await WriteCommandToFileAsync(file, builder);
+                await ExecuteBatchFileAsync(file, builder.RootDirectory);
+                Logger.I("Cleaning up...");
+                file.Delete();
+                break;
+            default:
+                throw new UnreachableException();
+        }
+        
     }
 }

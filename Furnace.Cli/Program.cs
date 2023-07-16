@@ -2,7 +2,7 @@
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using Furnace.Cli.Command;
-using Furnace.Lib.Log;
+using Furnace.Lib.Logging;
 
 var forceOption = new Option<bool>(new[]{ "--force", "-f" }, () => false, "Perform destructive operation without confirmation.");
 var selectNewUserOption = new Option<bool>("--select", () => true, "Select the newly added user account as the default.");
@@ -12,6 +12,8 @@ var minecraftVersionOption = new Option<string?>("--minecraft-version", () => nu
 var modrinthVersionOption = new Option<string?>("--pack-version", () => null, "The target pack version id.");
 var createScriptOnlyOption = new Option<bool>("--create-script", () => false, "Create a launch script without launching the game.");
 var serverSideOption = new Option<bool>(new[] { "--server", "-s" }, () => false, "Target the minecraft server.");
+var showPromptOption = new Option<bool>(new[] { "--prompt", "-q" }, () => false,
+    "Show an interactive prompt when a value would be inferred.");
 
 var verboseOption = new Option<bool>(new[]{ "--verbose", "-v" }, () => false, "Show verbose output.");
 var throwErrorsOption = new Option<bool>("--debug-throw-errors", () => false, "Throw errors, used to debug the furnace application.")
@@ -58,6 +60,9 @@ deleteCommand.AddOption(forceOption);
 deleteCommand.SetHandler(InstallCommand.DeletePackAsync, packIdArgument, forceOption);
 
 var openFolderCommand = new Command("open", "Open the folder containing the given pack files.");
+openFolderCommand.AddArgument(packIdArgument);
+openFolderCommand.AddOption(showPromptOption);
+openFolderCommand.SetHandler(OpenFolderCommand.OpenFolder, packIdArgument, showPromptOption);
 
 usersCommand.AddCommand(usersAddCommand);
 usersCommand.AddCommand(userSelectCommand);
@@ -68,6 +73,7 @@ rootCommand.AddCommand(installCommand);
 rootCommand.AddCommand(launchCommand);
 rootCommand.AddCommand(listCommand);
 rootCommand.AddCommand(deleteCommand);
+rootCommand.AddCommand(openFolderCommand);
 
 #if DEBUG
 Logger.RegisterHandler(new DebugLoggingHandler(LoggingLevel.Trace));

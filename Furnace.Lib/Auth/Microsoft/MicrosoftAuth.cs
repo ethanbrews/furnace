@@ -5,7 +5,7 @@ using System.Security.Authentication;
 using System.Text.Json;
 using Furnace.Lib.Auth.Microsoft.Data;
 using Microsoft.Identity.Client;
-using Logger = Furnace.Lib.Log.Logger;
+using Logger = Furnace.Lib.Logging.Logger;
 
 namespace Furnace.Lib.Auth.Microsoft;
 

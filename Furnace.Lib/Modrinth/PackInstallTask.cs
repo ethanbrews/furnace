@@ -1,5 +1,4 @@
 ﻿using Furnace.Lib.Fabric;
-using Furnace.Lib.Log;
 using Furnace.Lib.Minecraft;
 using Furnace.Lib.Minecraft.Data;
 using Furnace.Lib.Utility;
