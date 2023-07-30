@@ -30,7 +30,7 @@ public class CFPackInstallTask : Runnable.Runnable
 
         _rootDirectory = rootDirectory;
     }
-
+/*
     public static CFPackInstallTask InstallLatest(DirectoryInfo rootDirectory, string packId) =>
         new(rootDirectory, packId, null, null);
 
@@ -39,12 +39,12 @@ public class CFPackInstallTask : Runnable.Runnable
     
     public static CFPackInstallTask InstallPackVersion(DirectoryInfo rootDirectory, string packId, string packVersion) =>
         new(rootDirectory, packId, null, packVersion);
-
+*/
 
 
     public override async Task RunAsync(CancellationToken ct)
     {
-        
+        /*
         Logger.D("Getting Pack Data");
         var allVersions = await WebService.GetJson(
             new Uri(string.Format(ModrinthVersionListUri, _packId)),
@@ -97,5 +97,6 @@ public class CFPackInstallTask : Runnable.Runnable
         await fabricTask;
         await minecraftTask;
         Logger.I($"Installation completed");
+        */
     }
 }
