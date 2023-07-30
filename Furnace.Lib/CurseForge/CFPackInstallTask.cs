@@ -11,8 +11,8 @@ public class CFPackInstallTask : Runnable.Runnable
 {
     public override string Tag => $"Modrinth install ({_packId})";
 
-    private const string ModrinthVersionListUri = "https://www.curseforge.com/api/v1/mods/{0}/files/{1}/download";
-    private const string MrPackIndexFileName = "modrinth.index.json";
+    private const string CfModUri = "https://www.curseforge.com/api/v1/mods/{0}/files/{1}/download";
+    private const string CFManifest ="manifest.json";
 
     private readonly string _packId;
     private readonly string _fileId;
@@ -31,51 +31,33 @@ public class CFPackInstallTask : Runnable.Runnable
         _rootDirectory = rootDirectory;
     }
 
-    public static CFPackInstallTask InstallLatest(DirectoryInfo rootDirectory, string packId) =>
-        new(rootDirectory, packId, null, null);
-
-    public static CFPackInstallTask InstallForMinecraftVersion(DirectoryInfo rootDirectory, string packId,
-        string mcVersion) => new(rootDirectory, packId, mcVersion, null);
-    
-    public static CFPackInstallTask InstallPackVersion(DirectoryInfo rootDirectory, string packId, string packVersion) =>
-        new(rootDirectory, packId, null, packVersion);
 
 
 
     public override async Task RunAsync(CancellationToken ct)
     {
         
-        Logger.D("Getting Pack Data");
-        var allVersions = await WebService.GetJson(
-            new Uri(string.Format(ModrinthVersionListUri, _packId)),
-            Furnace.Modrinth.Data.ProjectVersionList.ProjectVersion.FromJson,
-            ct
-        );
-
-        
-
-        
-        
-        Logger.I($"Selected valid candidate for installation: {selectedVersion.Id}");
-        
         var packZip = new FileInfo(Path.GetTempFileName());
         // Downloading the mr-pack file. The files list may contain other mirrors to try on failure.
         // TODO: Allow mirrors in `FileDownloadTask`
-        await WebService.DownloadFileAsync(selectedVersion.Files[0].Url, packZip, ct);
+
+        await WebService.DownloadFileAsync(string.Format(CfModUri,-_packId,_fileId), packZip, ct);
         var extractDirectory = FileUtil.CreateUniqueTempDirectory();
         System.IO.Compression.ZipFile.ExtractToDirectory(packZip.FullName, extractDirectory.FullName);
-        var indexFile = extractDirectory.GetFiles().First(x => x.Name == MrPackIndexFileName);
-        var indexData = Furnace.Modrinth.Data.PackIndex.PackIndex.FromJson(
+        var indexFile = extractDirectory.GetFiles().First(x => x.Name == CFManifest);
+        var indexData = Furnace.Lib.CurseForge.data.CfManifestFormat.fromJson(
             await new StreamReader(indexFile.OpenRead()).ReadToEndAsync(ct)
         );
 
-        Logger.I($"Installing {indexData.Name} {indexData.VersionId}");
+        Logger.I($"Installing {indexData.name} {indexData.version}");
+		
         var installDir = _rootDirectory.CreateSubdirectory($"Instances/{_packId}");
-        indexFile.CopyTo(installDir.GetFileInfo(MrPackIndexFileName).FullName, true);
+        indexFile.CopyTo(installDir.GetFileInfo(CfManifest).FullName, true);
         
         await Parallel.ForEachAsync(indexData.Files, ct, async (file, token) =>
         {
-            await WebService.DownloadFileAsync(file.Downloads[0], installDir.GetFileInfo(file.Path), token);
+			
+            await WebService.DownloadFileAsync(string.Format(CfModUri,_packId,_fileId), installDir.GetFileInfo("mods/"+file.fileId+".jar"), token);
         });
 
         Logger.I($"Installing dependency: Minecraft({indexData.Dependencies.Minecraft})");
