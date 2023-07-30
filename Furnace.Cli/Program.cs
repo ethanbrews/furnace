@@ -1,13 +1,17 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
+using System.Reflection;
+using Furnace.Cli;
 using Furnace.Cli.Command;
 using Furnace.Lib.Logging;
+using Spectre.Console;
 
 var forceOption = new Option<bool>(new[]{ "--force", "-f" }, () => false, "Perform destructive operation without confirmation.");
 var selectNewUserOption = new Option<bool>("--select", () => true, "Select the newly added user account as the default.");
 var userUuidArgument = new Argument<string?>("uuid", () => null, "The user to target the operation towards.");
 var packIdArgument = new Argument<string?>("packId", () => null, "The modrinth pack id.");
+var queryArgument = new Argument<string?>("query", () => null, "The query string.");
 var minecraftVersionOption = new Option<string?>("--minecraft-version", () => null, "The target minecraft version.");
 var modrinthVersionOption = new Option<string?>("--pack-version", () => null, "The target pack version id.");
 var createScriptOnlyOption = new Option<bool>("--create-script", () => false, "Create a launch script without launching the game.");
@@ -62,7 +66,13 @@ deleteCommand.SetHandler(InstallCommand.DeletePackAsync, packIdArgument, forceOp
 var openFolderCommand = new Command("open", "Open the folder containing the given pack files.");
 openFolderCommand.AddArgument(packIdArgument);
 openFolderCommand.AddOption(showPromptOption);
-openFolderCommand.SetHandler(OpenFolderCommand.OpenFolder, packIdArgument, showPromptOption);
+openFolderCommand.SetHandler(PackManagementCommand.OpenFolder, packIdArgument, showPromptOption);
+
+var searchModrinthCommand = new Command("search", "Search modrinth for a modpack.");
+searchModrinthCommand.AddArgument(queryArgument);
+searchModrinthCommand.AddOption(showPromptOption);
+searchModrinthCommand.AddGlobalOption(verboseOption);
+searchModrinthCommand.SetHandler(MiscModrinthCommand.SearchPacksAsync, queryArgument, showPromptOption, verboseOption);
 
 usersCommand.AddCommand(usersAddCommand);
 usersCommand.AddCommand(userSelectCommand);
@@ -74,6 +84,7 @@ rootCommand.AddCommand(launchCommand);
 rootCommand.AddCommand(listCommand);
 rootCommand.AddCommand(deleteCommand);
 rootCommand.AddCommand(openFolderCommand);
+rootCommand.AddCommand(searchModrinthCommand);
 
 #if DEBUG
 Logger.RegisterHandler(new DebugLoggingHandler(LoggingLevel.Trace));
@@ -93,13 +104,46 @@ var parser = new CommandLineBuilder(rootCommand)
     .CancelOnProcessTermination()
     .Build();
 
-return await parser.InvokeAsync(args);
+try
+{
+    Furnace.Cli.Program.Cfg = await AppConfig.ReadConfig();
+}
+catch (Newtonsoft.Json.JsonSerializationException exception)
+{
+    AnsiConsole.Foreground = Color.Red;
+    AnsiConsole.WriteLine($"Exception loading config from {AppConfig.ConfigFileName}");
+    AnsiConsole.WriteLine(exception.Message);
+    AnsiConsole.ResetColors();
+    return -1;
+}
+
+
+var code = await parser.InvokeAsync(args);
+
+await Furnace.Cli.Program.Cfg.WriteConfig();
+
+return code;
 
 
 namespace Furnace.Cli
 {
     public partial class Program
     {
-        internal static readonly DirectoryInfo RootDirectory = new("data");
+        //internal static readonly DirectoryInfo RootDirectory = new("data");
+
+        internal static AppConfig Cfg { get; set; }
+
+        internal static readonly DirectoryInfo RootDirectory = new(AssemblyDirectory ?? throw new NullReferenceException("AssemblyDirectory is null. Where is home directory?"));
+        
+        private static string? AssemblyDirectory
+        {
+            get
+            {
+                var codeBase = Assembly.GetExecutingAssembly().Location;
+                var uri = new UriBuilder(codeBase);
+                var path = Uri.UnescapeDataString(uri.Path);
+                return Path.GetDirectoryName(path);
+            }
+        }
     }
 }

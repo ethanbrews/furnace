@@ -173,7 +173,7 @@ public class PackLaunchTask : Runnable.Runnable
         switch (_packLaunchAction)
         {
             case PackLaunchAction.GenerateScript:
-                file = _rootDir.GetFileInfo("start.bat");
+                file = builder.RootDirectory.GetFileInfo("start.bat");
                 await WriteCommandToFileAsync(file, builder);
                 Logger.I($"Start script written to {file}");
                 break;

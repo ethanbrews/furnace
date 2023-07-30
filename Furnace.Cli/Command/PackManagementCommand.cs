@@ -2,7 +2,7 @@
 
 namespace Furnace.Cli.Command;
 
-public static class OpenFolderCommand
+public static class PackManagementCommand
 {
     public static void OpenFolder(string? name, bool promptIfBlank)
     {
