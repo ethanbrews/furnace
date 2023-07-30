@@ -79,5 +79,6 @@ public class CFPackInstallTask : Runnable.Runnable
         await fabricTask;
         await minecraftTask;
         Logger.I($"Installation completed");
+        */
     }
 }

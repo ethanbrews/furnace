@@ -1,0 +1,84 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+	  <ComponentGroup Id="MainComponents" Directory="INSTALLFOLDER">
+		  <Component>
+			  <File Source="Furnace.Cli.deps.json" />
+		  </Component>
+		  <Component>
+			  <File Source="Furnace.Cli.dll" />
+		  </Component>
+		  <Component>
+			  <File Source="Furnace.Cli.exe" />
+		  </Component>
+		  <Component>
+			  <File Source="Furnace.Cli.pdb" />
+		  </Component>
+		  <Component>
+			  <File Source="Furnace.Cli.runtimeconfig.json" />
+		  </Component>
+		  <Component>
+			  <File Source="Furnace.Lib.dll" />
+		  </Component>
+		  <Component>
+			  <File Source="Furnace.Lib.pdb" />
+		  </Component>
+		  <Component>
+			  <File Source="Microsoft.Identity.Client.dll" />
+		  </Component>
+		  <Component>
+			  <File Source="Microsoft.IdentityModel.Abstractions.dll" />
+		  </Component>
+		  <Component>
+			  <File Source="Spectre.Console.dll" />
+		  </Component>
+		  <Component>
+			  <File Source="System.CommandLine.dll" />
+		  </Component>
+		  <Component>
+			  <File Source="System.CommandLine.Rendering.dll" />
+		  </Component>
+		  <Component Subdirectory="cs">
+			  <File Source="cs/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="de">
+			  <File Source="de/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="es">
+			  <File Source="es/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="fr">
+			  <File Source="fr/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="it">
+			  <File Source="it/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="ja">
+			  <File Source="ja/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="ko">
+			  <File Source="ko/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="pl">
+			  <File Source="pl/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="ru">
+			  <File Source="ru/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="tr">
+			  <File Source="tr/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="pt-BR">
+			  <File Source="pt-BR/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="zh-Hans">
+			  <File Source="zh-Hans/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="zh-Hant">
+			  <File Source="zh-Hant/System.CommandLine.resources.dll" />
+		  </Component>
+		  <Component Subdirectory="bin" Guid="1261b471-e436-4eab-864c-aa518215e15e" Id="AppShortcutComponent">
+			  <Shortcut Name="furnace.exe" Target="../Furnace.Cli.exe" />
+		  </Component>
+	  </ComponentGroup>
+  </Fragment>
+</Wix>

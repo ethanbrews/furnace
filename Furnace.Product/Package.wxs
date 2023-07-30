@@ -1,0 +1,12 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="FurnaceLauncher" Manufacturer="Ethan Brews" Version="1.0.0.0" UpgradeCode="8c25ae19-c87b-4d1f-af63-f2019722129b">
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+
+    <Feature Id="Main">
+        <ComponentGroupRef Id="MainComponents" />
+        <ComponentGroupRef Id="PathComponents" />
+		<ComponentRef Id="PathComponent" />
+		<ComponentRef Id="AppShortcutComponent" />
+    </Feature>
+  </Package>
+</Wix>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+	  <ComponentGroup Id="PathComponents" Directory="INSTALLFOLDER">
+		  <Component Guid="ea860c46-7bf6-4253-8459-13147294e9c8" Id="PathComponent">
+			  <Environment
+				  Id="PATH"
+				  Name="PATH"
+				  Value="[INSTALLFolder]bin"
+				  Permanent="yes"
+				  Part="last"
+				  Action="set"
+				  System="yes" />
+		  </Component>
+	  </ComponentGroup>
+  </Fragment>
+</Wix>

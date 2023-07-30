@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+	  <ComponentGroup Id="RegistryComponents" Directory="INSTALLFOLDER">
+		  <Component>
+			  <RegistryKey Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\furnace.exe">
+				  <RegistryValue Type="string" Value="[INSTALLFOLDER]Furnace.Cli.exe"/>
+				  <RegistryValue Name="Path" Type="string" Value="[INSTALLFOLDER]"/>
+			  </RegistryKey>
+		  </Component>
+	  </ComponentGroup>
+  </Fragment>
+</Wix>
