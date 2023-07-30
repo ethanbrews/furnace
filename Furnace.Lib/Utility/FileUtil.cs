@@ -9,7 +9,7 @@ public static class FileUtil
         return new DirectoryInfo(uniqueTempDir);
     }
 
-    public static async Task<T> ReadAsync<T>(this FileInfo file, Func<string, T> converter, CancellationToken ct)
+    private static async Task<T> ReadAsync<T>(this FileInfo file, Func<string, T> converter, CancellationToken ct)
     {
         await using var stream = file.OpenRead();
         using var reader = new StreamReader(stream);
@@ -17,24 +17,20 @@ public static class FileUtil
         return converter.Invoke(text);
     }
 
-    public static async Task CopyDirectoryAsync(DirectoryInfo StartDirectory, DirectoryInfo EndDirectory)
+    public static async Task CopyDirectoryAsync(DirectoryInfo startDirectory, DirectoryInfo endDirectory)
     {
         //Creates all of the directories and sub-directories
-        foreach (DirectoryInfo dirInfo in StartDirectory.GetDirectories("*", SearchOption.AllDirectories))
+        foreach (var dirInfo in startDirectory.GetDirectories("*", SearchOption.AllDirectories))
         {
-            string dirPath = dirInfo.FullName;
-            string outputPath = dirPath.Replace(StartDirectory.FullName, EndDirectory.FullName);
+            var dirPath = dirInfo.FullName;
+            var outputPath = dirPath.Replace(startDirectory.FullName, endDirectory.FullName);
             Directory.CreateDirectory(outputPath);
 
-            foreach (FileInfo file in dirInfo.EnumerateFiles())
+            foreach (var file in dirInfo.EnumerateFiles())
             {
-                using (FileStream SourceStream = file.OpenRead())
-                {
-                    using (FileStream DestinationStream = File.Create(outputPath +"/"+ file.Name))
-                    {
-                        SourceStream.CopyToAsync(DestinationStream);
-                    }
-                }
+                await using var sourceStream = file.OpenRead();
+                await using var destinationStream = File.Create(outputPath +"/"+ file.Name);
+                await sourceStream.CopyToAsync(destinationStream);
             }
         }
     }
