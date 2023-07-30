@@ -17,6 +17,28 @@ public static class FileUtil
         return converter.Invoke(text);
     }
 
+    public static async Task CopyDirectoryAsync(DirectoryInfo StartDirectory, DirectoryInfo EndDirectory)
+    {
+        //Creates all of the directories and sub-directories
+        foreach (DirectoryInfo dirInfo in StartDirectory.GetDirectories("*", SearchOption.AllDirectories))
+        {
+            string dirPath = dirInfo.FullName;
+            string outputPath = dirPath.Replace(StartDirectory.FullName, EndDirectory.FullName);
+            Directory.CreateDirectory(outputPath);
+
+            foreach (FileInfo file in dirInfo.EnumerateFiles())
+            {
+                using (FileStream SourceStream = file.OpenRead())
+                {
+                    using (FileStream DestinationStream = File.Create(outputPath +"/"+ file.Name))
+                    {
+                        SourceStream.CopyToAsync(DestinationStream);
+                    }
+                }
+            }
+        }
+    }
+
     public static async Task<T> ReadAsync<T>(this FileInfo file, CancellationToken ct) where T : IJsonConvertable<T> =>
         await ReadAsync(file, T.FromJson, ct);
 }

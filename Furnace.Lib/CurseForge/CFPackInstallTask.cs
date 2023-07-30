@@ -18,7 +18,7 @@ public class CFPackInstallTask : Runnable.Runnable
     private readonly string _fileId;
     private readonly DirectoryInfo _rootDirectory;
 
-    private CFPackInstallTask(DirectoryInfo rootDirectory, string packId,string fileId, string? minecraftVersion, string? versionId)
+    public CFPackInstallTask(DirectoryInfo rootDirectory, string packId,string fileId)
     {
         static bool MatchOne(string? required, string? actual) => required == null || required == actual;
 
@@ -41,36 +41,56 @@ public class CFPackInstallTask : Runnable.Runnable
         // Downloading the mr-pack file. The files list may contain other mirrors to try on failure.
         // TODO: Allow mirrors in `FileDownloadTask`
 
-        await WebService.DownloadFileAsync(string.Format(CfModUri,-_packId,_fileId), packZip, ct);
+        Uri packUri = new Uri(string.Format(CfModUri, _packId, _fileId));
+        await WebService.DownloadFileAsync(packUri, packZip, ct); ;
         var extractDirectory = FileUtil.CreateUniqueTempDirectory();
         System.IO.Compression.ZipFile.ExtractToDirectory(packZip.FullName, extractDirectory.FullName);
         var indexFile = extractDirectory.GetFiles().First(x => x.Name == CFManifest);
-        var indexData = Furnace.Lib.CurseForge.data.CfManifestFormat.fromJson(
+        var overridesFolder = extractDirectory.GetDirectories().First(x => x.Name == "overrides");
+        var indexData = Furnace.Lib.CurseForge.data.CfManifestFormat.CfManifestFormat.FromJson(
             await new StreamReader(indexFile.OpenRead()).ReadToEndAsync(ct)
         );
+        
 
-        Logger.I($"Installing {indexData.name} {indexData.version}");
+        Logger.I($"Installing {indexData.Name} {indexData.Version}");
 		
         var installDir = _rootDirectory.CreateSubdirectory($"Instances/{_packId}");
-        indexFile.CopyTo(installDir.GetFileInfo(CfManifest).FullName, true);
-        
+        indexFile.CopyTo(installDir.GetFileInfo(CFManifest).FullName, true);
+        await FileUtil.CopyDirectoryAsync(overridesFolder, installDir);
+
+
         await Parallel.ForEachAsync(indexData.Files, ct, async (file, token) =>
         {
-			
-            await WebService.DownloadFileAsync(string.Format(CfModUri,_packId,_fileId), installDir.GetFileInfo("mods/"+file.fileId+".jar"), token);
+            Uri modUri = new Uri(string.Format(CfModUri, file.ProjectId, file.FileId));
+            Logger.I($"looking at: {modUri.AbsoluteUri}");
+            try
+            {
+                await WebService.DownloadFileAsync(modUri, installDir.GetFileInfo("mods/" + file.FileId + ".jar"), token);
+            }
+            catch (Exception e) 
+            {
+                Logger.W($"Project with id: {file.ProjectId} likely no longer exists on CurseForge (google 'curseforge.com {file.ProjectId}' to see what it is");
+                
+            }
+            
         });
 
-        Logger.I($"Installing dependency: Minecraft({indexData.Dependencies.Minecraft})");
+
+
+        Logger.I($"Installing dependency: Minecraft({indexData.Minecraft.Version})");
         var minecraftTask = MinecraftInstallTask.InstallSpecificVersion(
-            indexData.Dependencies.Minecraft,
+            indexData.Minecraft.Version,
             _rootDirectory,
             GameInstallType.Client
         ).RunAsync(ct);
-        
-        Logger.I($"Installing dependency: FabricLoader({indexData.Dependencies.FabricLoader})");
+
+        //TODO: check the consistency of this, I assume forge works like this better.
+        string loaderVersion = indexData.Minecraft.ModLoaders[0].Id.Replace("fabric-", "");
+
+        Logger.I($"Installing dependency: FabricLoader({loaderVersion})");
         var fabricTask = FabricInstallTask.SpecificVersion(
-            indexData.Dependencies.Minecraft,
-            indexData.Dependencies.FabricLoader,
+            indexData.Minecraft.Version,
+            loaderVersion,
             GameInstallType.Client,
             _rootDirectory
         ).RunAsync(ct);
@@ -79,6 +99,6 @@ public class CFPackInstallTask : Runnable.Runnable
         await fabricTask;
         await minecraftTask;
         Logger.I($"Installation completed");
-        */
+        
     }
 }
