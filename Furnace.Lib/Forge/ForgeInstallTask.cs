@@ -44,6 +44,7 @@ public class ForgeInstallTask : Runnable.Runnable
         Logger.I($"Installing forge {_minecraftVersion}-{_forgeVersion} (libraries)");
         foreach (var lib in forgeManifest.Libraries)
         {
+            Logger.D("Installing library: " + lib.Downloads.Artifact.Url);
             await WebService.DownloadFileAsync(lib.Downloads.Artifact.Url,
                 _installDir.GetFileInfo(lib.Downloads.Artifact.Path), ct);
         }

@@ -5,6 +5,7 @@ using System.Reflection;
 using Furnace.Cli;
 using Furnace.Cli.Command;
 using Furnace.Lib.Logging;
+using Furnace.Lib.Utility.Extension;
 using Spectre.Console;
 
 var forceOption = new Option<bool>(new[]{ "--force", "-f" }, () => false, "Perform destructive operation without confirmation.");
@@ -129,13 +130,13 @@ namespace Furnace.Cli
 {
     public partial class Program
     {
-        //internal static readonly DirectoryInfo RootDirectory = new("data");
-
         internal static AppConfig Cfg { get; set; }
 
         public static DirectoryInfo TestsRootDirectory => RootDirectory;
 
-        internal static readonly DirectoryInfo RootDirectory = new(AssemblyDirectory ?? throw new NullReferenceException("AssemblyDirectory is null. Where is home directory?"));
+        internal static readonly DirectoryInfo RootDirectory = new DirectoryInfo(
+            AssemblyDirectory ?? throw new NullReferenceException("AssemblyDirectory is null. Where is home directory?")
+        ).CreateSubdirectory("data");
         
         private static string? AssemblyDirectory
         {

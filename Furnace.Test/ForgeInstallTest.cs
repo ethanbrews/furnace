@@ -1,4 +1,6 @@
-﻿namespace Furnace.Test;
+﻿using Furnace.Lib.Logging;
+
+namespace Furnace.Test;
 
 public class ForgeInstallTest
 {
@@ -7,6 +9,7 @@ public class ForgeInstallTest
     [SetUp]
     public void Setup()
     {
+        Logger.RegisterHandler(new ConsoleLoggingHandler(LoggingLevel.Debug));
         _installer = new Lib.Forge.ForgeInstallTask(Furnace.Cli.Program.TestsRootDirectory, "1.20.1", "47.1.43");
     }
 
