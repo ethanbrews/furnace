@@ -133,6 +133,8 @@ namespace Furnace.Cli
 
         internal static AppConfig Cfg { get; set; }
 
+        public static DirectoryInfo TestsRootDirectory => RootDirectory;
+
         internal static readonly DirectoryInfo RootDirectory = new(AssemblyDirectory ?? throw new NullReferenceException("AssemblyDirectory is null. Where is home directory?"));
         
         private static string? AssemblyDirectory

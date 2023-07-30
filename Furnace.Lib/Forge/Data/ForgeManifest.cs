@@ -2,7 +2,7 @@
 //
 // To parse this JSON data, add NuGet 'System.Text.Json' then do:
 //
-//    using Furnace.Forge.Data.ForgeManifest;
+//    using Furnace.Lib.Forge.Data.ForgeManifest;
 //
 //    var forgeManifest = ForgeManifest.FromJson(jsonString);
 #nullable enable
@@ -10,7 +10,7 @@
 #pragma warning disable CS8601
 #pragma warning disable CS8603
 
-namespace Furnace.Forge.Data.ForgeManifest
+namespace Furnace.Lib.Forge.Data.ForgeManifest
 {
     using System;
     using System.Collections.Generic;
@@ -137,12 +137,12 @@ namespace Furnace.Forge.Data.ForgeManifest
 
     public partial class ForgeManifest
     {
-        public static ForgeManifest FromJson(string json) => JsonSerializer.Deserialize<ForgeManifest>(json, Furnace.Forge.Data.ForgeManifest.Converter.Settings);
+        public static ForgeManifest FromJson(string json) => JsonSerializer.Deserialize<ForgeManifest>(json, Furnace.Lib.Forge.Data.ForgeManifest.Converter.Settings);
     }
 
     public static class Serialize
     {
-        public static string ToJson(this ForgeManifest self) => JsonSerializer.Serialize(self, Furnace.Forge.Data.ForgeManifest.Converter.Settings);
+        public static string ToJson(this ForgeManifest self) => JsonSerializer.Serialize(self, Furnace.Lib.Forge.Data.ForgeManifest.Converter.Settings);
     }
 
     internal static class Converter
