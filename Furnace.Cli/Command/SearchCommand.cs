@@ -1,20 +1,24 @@
-﻿using Furnace.Lib.Logging;
+﻿using System.CommandLine;
+using Furnace.Lib.Logging;
 using Furnace.Lib.Modrinth;
 using Furnace.Modrinth.Data.SearchQueryResult;
 using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public static class MiscModrinthCommand
+public class SearchCommand : ICommand
 {
-    public static async Task SearchPacksAsync(string? query, bool promptToInstall, bool verbose)
+    private static async Task SearchPacksAsync(string? query, bool noInput, bool verbose)
     {
-        query ??= AnsiConsole.Ask<string>("pack search query:");
+        query ??= noInput ? 
+            throw new ArgumentNullException("Required option " + "'query'" + " is not set.") :  
+            AnsiConsole.Ask<string>("pack search query:");
+        
         var hits = await new PackSearchTask(query).RunAsync(CancellationToken.None);
-        if (promptToInstall)
-            await AskAndInstallPack(hits, verbose);
-        else
+        if (noInput)
             PrintHits(hits, verbose);
+        else
+            await AskAndInstallPack(hits, verbose);
     }
 
     private static async Task AskAndInstallPack(IEnumerable<Hit> hits, bool verbose)
@@ -48,5 +52,15 @@ public static class MiscModrinthCommand
                 .PageSize(10)
                 .MoreChoicesText("[grey](Move up and down to reveal more options)[/]")
                 .AddChoices(hits));
+    }
+
+    public void Register(RootCommand rootCommand)
+    {
+        var searchModrinthCommand = new System.CommandLine.Command("search", "Search modrinth for a modpack.");
+        var queryArgument = new Argument<string?>("query", () => null, "The query string.");
+        searchModrinthCommand.AddArgument(queryArgument);
+        searchModrinthCommand.SetHandler(SearchPacksAsync, queryArgument, GlobalOptions.NoInputOption, GlobalOptions.DebugOutputOption);
+        
+        rootCommand.AddCommand(searchModrinthCommand);
     }
 }

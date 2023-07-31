@@ -1,4 +1,5 @@
-﻿using Furnace.Cli.ConsoleTool;
+﻿using System.CommandLine;
+using Furnace.Cli.ConsoleTool;
 using Furnace.Lib.Logging;
 using Furnace.Lib.Minecraft;
 using Furnace.Lib.Minecraft.Data;
@@ -8,12 +9,35 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public static class InstallCommand
+public class InstallCommand : ICommand
 {
-    public static async Task InstallPack(string? packId, string? versionId, string? minecraftVersion, bool verbose)
+
+    public void Register(RootCommand rootCommand)
+    {
+        var minecraftVersionOption = new Option<string?>("--minecraft-version", () => null, "The target minecraft version.");
+        var modrinthVersionOption = new Option<string?>("--pack-version", () => null, "The target pack version id.");
+        var installCommand = new System.CommandLine.Command("install", "Install a modrinth pack.");
+        installCommand.AddOption(modrinthVersionOption);
+        installCommand.AddOption(minecraftVersionOption);
+        installCommand.AddOption(GlobalOptions.NoInputOption);
+        installCommand.AddArgument(GlobalOptions.PackIdArgument);
+        installCommand.SetHandler(InstallPack, GlobalOptions.PackIdArgument, modrinthVersionOption, minecraftVersionOption, GlobalOptions.DebugOutputOption, GlobalOptions.NoInputOption);
+        rootCommand.AddCommand(installCommand);
+        
+        var deleteCommand = new System.CommandLine.Command("delete", "Delete an installed modrinth pack.");
+        deleteCommand.AddArgument(GlobalOptions.PackIdArgument);
+        deleteCommand.AddOption(GlobalOptions.ForceOption);
+        deleteCommand.AddOption(GlobalOptions.NoInputOption);
+        deleteCommand.SetHandler(DeletePackAsync, GlobalOptions.PackIdArgument, GlobalOptions.ForceOption, GlobalOptions.NoInputOption);
+        rootCommand.AddCommand(deleteCommand);
+    }
+
+    private static async Task InstallPack(string? packId, string? versionId, string? minecraftVersion, bool verbose, bool noInput)
     {
         // Pack ID is required.
-        packId ??= AnsiConsole.Ask<string>("Enter the pack id.");
+        packId ??= noInput ? 
+            throw new ArgumentNullException("Required argument " + GlobalOptions.PackIdArgument.Name + " is not set.") : 
+            AnsiConsole.Ask<string>("Enter the pack id.");
 
         PackInstallTask installer;
 
@@ -37,9 +61,12 @@ public static class InstallCommand
         AnsiConsole.WriteLine("Installation completed successfully.");
     }
 
-    public static async Task DeletePackAsync(string? packId, bool force)
+    private static async Task DeletePackAsync(string? packId, bool force, bool noInput)
     {
-        packId ??= LaunchPack.AskForPackId("Which pack should be deleted?");
+        packId ??= noInput ? 
+            throw new ArgumentNullException("Required argument " + GlobalOptions.PackIdArgument.Name + " is not set.") : 
+            LaunchCommand.AskForPackId("Which pack should be deleted?");
+        
         var targetDirectory = Program.RootDirectory.CreateSubdirectory($"Instances/{packId}");
         string text;
         await using (var stream = targetDirectory.GetFileInfo("modrinth.index.json").OpenRead())

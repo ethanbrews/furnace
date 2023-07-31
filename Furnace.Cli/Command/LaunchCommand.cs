@@ -1,4 +1,5 @@
-﻿using Furnace.Lib.Logging;
+﻿using System.CommandLine;
+using Furnace.Lib.Logging;
 using Furnace.Lib.Minecraft.Data;
 using Furnace.Lib.Modrinth;
 using Furnace.Lib.Modrinth.Data;
@@ -8,10 +9,10 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public static class LaunchPack
+public class LaunchCommand : ICommand
 {
 
-    private static List<Tuple<DirectoryInfo, Modrinth.Data.PackIndex.PackIndex>> GetAllInstalledPacksAndDirectories()
+    public static List<Tuple<DirectoryInfo, Modrinth.Data.PackIndex.PackIndex>> GetAllInstalledPacksAndDirectories()
     {
         var rootDir = Program.RootDirectory.CreateSubdirectory("Instances");
         
@@ -41,35 +42,7 @@ public static class LaunchPack
         return indexDirectoryPairs.First(x => x.Item2.Name == selectedName).Item1.Name;
     }
 
-    public static void ListPacks(bool verbose)
-    {
-        var packs = GetAllInstalledPacksAndDirectories();
-        var table = new Table();
-
-        table.AddColumn("Id");
-        table.AddColumn("Name");
-        table.AddColumn("Version");
-
-        if (verbose)
-            table.AddColumn("Minecraft");
-        
-        foreach (var pack in packs)
-        {
-            if (verbose)
-            {
-                
-                table.AddRow(pack.Item1.Name, pack.Item2.Name, pack.Item2.VersionId, pack.Item2.Game);
-            }
-            else
-            {
-                table.AddRow(pack.Item1.Name, pack.Item2.Name, pack.Item2.VersionId);
-            }
-        }
-        
-        AnsiConsole.Write(table);
-    }
-    
-    public static async Task LaunchAsync(string? packId, bool verbose, bool createScript, bool serverSide)
+    private static async Task LaunchAsync(string? packId, bool verbose, bool createScript, bool serverSide)
     {
         packId ??= AskForPackId("Which pack should be launched?");
 
@@ -81,5 +54,17 @@ public static class LaunchPack
             Logger.RegisterHandler(new ConsoleLoggingHandler(LoggingLevel.Debug));
 
         await launcher.RunAsync(CancellationToken.None);
+    }
+
+    public void Register(RootCommand rootCommand)
+    {
+        var launchCommand = new System.CommandLine.Command("launch", "Launch a modrinth pack.");
+        var scriptOnlyOption =
+            new Option<bool>("--create-script", () => false, "Save the launch script and do not execute it.");
+        launchCommand.AddArgument(GlobalOptions.PackIdArgument);
+        launchCommand.AddOption(scriptOnlyOption);
+        launchCommand.AddOption(GlobalOptions.ServerOption);
+        launchCommand.SetHandler(LaunchAsync, GlobalOptions.PackIdArgument, GlobalOptions.DebugOutputOption, scriptOnlyOption, GlobalOptions.ServerOption);
+        rootCommand.AddCommand(launchCommand);
     }
 }

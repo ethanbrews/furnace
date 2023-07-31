@@ -1,10 +1,11 @@
-﻿using Furnace.Lib.Auth;
+﻿using System.CommandLine;
+using Furnace.Lib.Auth;
 using Microsoft.Identity.Client;
 using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public static class UserCommand
+public class UserCommand : ICommand
 {
     private static UserProfile PromptForUser(string prompt, UserProfileManager profileManager)
     {
@@ -26,13 +27,16 @@ public static class UserCommand
         return result;
     }
     
-    public static async Task AddUserAsync(bool setAsDefault)
+    private static async Task AddUserAsync(bool noInput)
     {
+        if (noInput)
+            throw new NotImplementedException("Adding users without the browser is not supported in this release.");
+        
         Console.WriteLine("Please sign in using the browser.");
         try
         {
             var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
-            var profile = await profileManager.SignInWithMicrosoftAsync(setAsDefault);
+            var profile = await profileManager.SignInWithMicrosoftAsync();
             await profileManager.WriteProfilesAsync();
             if (profile.IsDemoUser)
             {
@@ -47,7 +51,7 @@ public static class UserCommand
 
     }
 
-    public static async Task SetUserSelectedAsync(string? usernameOrUuid)
+    private static async Task SetUserSelectedAsync(string? usernameOrUuid)
     {
         var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
         if (usernameOrUuid == null)
@@ -67,7 +71,7 @@ public static class UserCommand
         Console.WriteLine($"Selected {profileManager.SelectedProfile?.Username} as the default profile!");
     }
 
-    public static async Task DeleteUserAsync(string? usernameOrUuid, bool force)
+    private static async Task DeleteUserAsync(string? usernameOrUuid, bool force)
     {
         var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
         
@@ -91,7 +95,7 @@ public static class UserCommand
         await profileManager.WriteProfilesAsync();
     }
 
-    public static async Task ListUsersAsync(bool verbose)
+    private static async Task ListUsersAsync(bool verbose)
     {
         var profileManager = await UserProfileManager.LoadProfilesAsync(Program.RootDirectory);
         
@@ -129,5 +133,23 @@ public static class UserCommand
         }
         
         AnsiConsole.Write(table);
+    }
+
+    public void Register(RootCommand rootCommand)
+    {
+        var usersCommand = new System.CommandLine.Command("users", "add, delete and select user accounts.");
+        var usersAddCommand = new System.CommandLine.Command("add", "Add a new user.");
+        usersAddCommand.AddOption(GlobalOptions.NoInputOption);
+        usersAddCommand.SetHandler(AddUserAsync, GlobalOptions.NoInputOption);
+        var usersDeleteCommand = new System.CommandLine.Command("delete", "Delete the specified user.");
+        usersDeleteCommand.AddOption(GlobalOptions.ForceOption);
+        usersDeleteCommand.AddArgument(GlobalOptions.UuidArgument);
+        usersDeleteCommand.SetHandler(DeleteUserAsync, GlobalOptions.UuidArgument, GlobalOptions.ForceOption);
+        var userSelectCommand = new System.CommandLine.Command("select", "Select a new user as default.");
+        userSelectCommand.AddArgument(GlobalOptions.UuidArgument);
+        userSelectCommand.SetHandler(SetUserSelectedAsync, GlobalOptions.UuidArgument);
+        var userListCommand = new System.CommandLine.Command("list", "List all user accounts that are logged in.");
+        userListCommand.SetHandler(ListUsersAsync, GlobalOptions.DebugOutputOption);
+        rootCommand.AddCommand(usersCommand);
     }
 }
