@@ -76,9 +76,6 @@
 		  <Component Subdirectory="zh-Hant">
 			  <File Source="zh-Hant/System.CommandLine.resources.dll" />
 		  </Component>
-		  <Component Subdirectory="bin" Guid="1261b471-e436-4eab-864c-aa518215e15e" Id="AppShortcutComponent">
-			  <Shortcut Name="furnace.exe" Target="../Furnace.Cli.exe" />
-		  </Component>
 	  </ComponentGroup>
   </Fragment>
 </Wix>

@@ -6,7 +6,7 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public class SearchCommand : ICommand
+public class SearchCommand : CliCommand
 {
     private static async Task SearchPacksAsync(string? query, bool noInput, bool verbose)
     {
@@ -54,7 +54,7 @@ public class SearchCommand : ICommand
                 .AddChoices(hits));
     }
 
-    public void Register(RootCommand rootCommand)
+    public override void Register(RootCommand rootCommand)
     {
         var searchModrinthCommand = new System.CommandLine.Command("search", "Search modrinth for a modpack.");
         var queryArgument = new Argument<string?>("query", () => null, "The query string.");

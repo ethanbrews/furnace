@@ -6,7 +6,7 @@
         <ComponentGroupRef Id="MainComponents" />
         <ComponentGroupRef Id="PathComponents" />
 		<ComponentRef Id="PathComponent" />
-		<ComponentRef Id="AppShortcutComponent" />
+		<!--<ComponentRef Id="AppShortcutComponent" />-->
     </Feature>
   </Package>
 </Wix>

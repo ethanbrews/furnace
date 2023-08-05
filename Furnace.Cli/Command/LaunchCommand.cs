@@ -9,7 +9,7 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public class LaunchCommand : ICommand
+public class LaunchCommand : CliCommand
 {
 
     public static List<Tuple<DirectoryInfo, Modrinth.Data.PackIndex.PackIndex>> GetAllInstalledPacksAndDirectories()
@@ -56,7 +56,7 @@ public class LaunchCommand : ICommand
         await launcher.RunAsync(CancellationToken.None);
     }
 
-    public void Register(RootCommand rootCommand)
+    public override void Register(RootCommand rootCommand)
     {
         var launchCommand = new System.CommandLine.Command("launch", "Launch a modrinth pack.");
         var scriptOnlyOption =

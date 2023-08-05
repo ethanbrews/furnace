@@ -3,9 +3,9 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public class ListCommand : ICommand
+public class ListCommand : CliCommand
 {
-    public void Register(RootCommand rootCommand)
+    public override void Register(RootCommand rootCommand)
     {
         var listCommand = new System.CommandLine.Command("list", "List installed modrinth packs");
         listCommand.SetHandler(ListPacks, GlobalOptions.DebugOutputOption);

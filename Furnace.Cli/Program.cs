@@ -19,7 +19,7 @@ public class Program
         var rootCommand = new RootCommand(description: "Install and launch modrinth packs with fabric support.");
         GlobalOptions.RegisterGlobalOptions(rootCommand);
 
-        var commands = new ICommand[]
+        var commands = new CliCommand[]
         {
             new InstallCommand(),
             new UserCommand(),

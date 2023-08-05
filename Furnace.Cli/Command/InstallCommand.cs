@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using System.Runtime.CompilerServices;
 using Furnace.Cli.ConsoleTool;
 using Furnace.Lib.Logging;
 using Furnace.Lib.Minecraft;
@@ -9,10 +10,9 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public class InstallCommand : ICommand
+public class InstallCommand : CliCommand
 {
-
-    public void Register(RootCommand rootCommand)
+    public override void Register(RootCommand rootCommand)
     {
         var minecraftVersionOption = new Option<string?>("--minecraft-version", () => null, "The target minecraft version.");
         var modrinthVersionOption = new Option<string?>("--pack-version", () => null, "The target pack version id.");
@@ -32,12 +32,18 @@ public class InstallCommand : ICommand
         rootCommand.AddCommand(deleteCommand);
     }
 
+    private static async Task InstallModrinthPackAsync(string? packId, string? versionId, string? minecraftVersion,
+        bool verbose, bool noInput)
+    {
+        
+    }
+
     private static async Task InstallPack(string? packId, string? versionId, string? minecraftVersion, bool verbose, bool noInput)
     {
+        packId ??= ThrowNoInputException(noInput, GlobalOptions.PackIdArgument.Name) || AnsiConsole.Ask<string>("Enter the pack id.");
         // Pack ID is required.
-        packId ??= noInput ? 
-            throw new ArgumentNullException("Required argument " + GlobalOptions.PackIdArgument.Name + " is not set.") : 
-            AnsiConsole.Ask<string>("Enter the pack id.");
+        packId ??= noInput ?
+            
 
         PackInstallTask installer;
 

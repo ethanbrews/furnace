@@ -3,9 +3,9 @@ using System.Diagnostics;
 
 namespace Furnace.Cli.Command;
 
-public class OpenCommand : ICommand
+public class OpenCommand : CliCommand
 {
-    public void Register(RootCommand rootCommand)
+    public override void Register(RootCommand rootCommand)
     {
         var openFolderCommand = new System.CommandLine.Command("open", "Open the folder containing the given pack files.");
         openFolderCommand.AddArgument(GlobalOptions.PackIdArgument);

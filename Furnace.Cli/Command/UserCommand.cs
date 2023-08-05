@@ -5,7 +5,7 @@ using Spectre.Console;
 
 namespace Furnace.Cli.Command;
 
-public class UserCommand : ICommand
+public class UserCommand : CliCommand
 {
     private static UserProfile PromptForUser(string prompt, UserProfileManager profileManager)
     {
@@ -30,7 +30,7 @@ public class UserCommand : ICommand
     private static async Task AddUserAsync(bool noInput)
     {
         if (noInput)
-            throw new NotImplementedException("Adding users without the browser is not supported in this release.");
+            throw new ArgumentException("Adding users without the browser is not supported in this release.");
         
         Console.WriteLine("Please sign in using the browser.");
         try
@@ -46,7 +46,7 @@ public class UserCommand : ICommand
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Error: Something went wrong! Please check your Internet connection, or register your account on Xbox Live first.\nDetails: {e.Message}");
+            throw new Exception("Something went wrong! Please check your Internet connection, or register your account on Xbox Live first.", e);
         }
 
     }
@@ -135,7 +135,7 @@ public class UserCommand : ICommand
         AnsiConsole.Write(table);
     }
 
-    public void Register(RootCommand rootCommand)
+    public override void Register(RootCommand rootCommand)
     {
         var usersCommand = new System.CommandLine.Command("users", "add, delete and select user accounts.");
         var usersAddCommand = new System.CommandLine.Command("add", "Add a new user.");
